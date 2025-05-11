@@ -1,0 +1,9 @@
+flask
+flask-cors
+boto3
+google-cloud-vision
+opencv-python
+numpy
+requests
+serpapi
+google-search-results 
