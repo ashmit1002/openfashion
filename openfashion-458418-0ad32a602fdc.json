@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "openfashion-458418",
+  "private_key_id": "0ad32a602fdccc697f320f0058a9fa5599ee0740",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC+Rm5x1miaWeX5\noMJYAOk1cSAOdkP/fMZ/f6/Up/zvPNzpjr5DtPLqgHNdrKx4CjsQESC/RLsxJziP\nPp+7A5FxUXhJD9q7W1TUpTRfjNIZfwjNrjqO5OskYPlw9iPxp/Ym7rlqL3SIwJNl\n+MnC87bBDdYpT6+BVwVc01YUz3jrQCJCQP/NID6QgwIrzqY1Ed8jj1JwE25teyBN\nHqVGxGpkc8MVbKHz/nPuZrPrilbfy+83Sn2xu/0ErKc4p3jiuxeM81clKTFwHxb0\nUJju3m80r7piOxTufYKNq29Ko7fSGMxXscUg7BrH7Lb2nCBL1nPtuSZOP5cVVQYH\nfRDZHO8lAgMBAAECggEAHnAOYWQC2jQo05C5nhHRPJUS43VcRc28RC+VHU/dKJkk\nHrGQsqyK0mQHcHP7p/08+wI+apJwXnnPdKy4KRa2SLoXY5qnayK+VIDz+pgAkQcP\nDbYCFJM+oVRo+r7JO7JacFpuazPZsLmbqquMfQT3FnVj7bpbUTWuPC3rfos85ObY\nC0X7iDczCMYNIUjtQ+Kh3r7wLV4ZnJ+lhv78RQh6VFjhLc3V3THt0Mgu5Auj91mP\n2NdHmiJxDg6ZvUV5wWnD2kp7xhQ2fkrPRB1y7Ya8307mFO4AqesT3Ek71g2cpwK+\n+roGpHNwtsUU7mdAC6d3HT9HZS5O+LGmPcklxPH12QKBgQDpYpfwPfYlbZCO2xAu\n0yHQxU4IPiGj+15QE2rXxTZnCXMZke4L1t0Hrdkki4EjDHw+SPNGX7HqvlxfWJUc\nS55yq0x5pTX1Jhbwqe2t0tjjPrcTY0kMrfT5KkVFGrnq6Xy4+4usj7pfyTQ+ZZlm\nFzl/fY4CkPvlYIfAfFjXeNJMuQKBgQDQtnDfNI2UhNuobI/J53lf8rUV27cTkX2M\n93KoxhLkHCAVFHAMCYohUv7JGgCR9C2g12iMdvDr60CXMMOqX2/IjL1Y4t1cU5J5\nZs+IK+I6PHxrJlSwEmNjkrVFvijq+KF/MAxl/+N1T5zXpCT4RKGsXf3KX7FkQxx/\n9fnpRKf3zQKBgGB2r/ZMpgCyWJ2zTe0Mt11jL+2YQK9WppTSccbdbK8J6NkYyBt8\no78YzDeesbGa53+XB3Z+9zrfk66VHoyjdMpQoztkXfkF1VWD5wmBrMPAmEsbLoZf\nIHIcVqVJdq7x8utCjWi1v4L31vAzbkQUNV/MtXW6F2OnknSs8Mue1M2BAoGAQX09\npYwD8NpPYmXOKHhtaWHq2FT8+TLpxlXOsI6WVuVMW9Dx55UGtrYoJEn4a9PGjXWJ\n5Kldp2lF9yrh+o+/r5oZv85PzyyaBWXxMLU0YzmfgK+iWy0p6pCaOKwWgsRJSHN3\nMHo+kQzOFgv3Xb+LS16ix+GG9ALq6mvwYvWcDvECgYBfaxKxs8k8wRq037RhyaLS\nqT7UvSf/21iOtsM5rJEHFxu0MYbqLt+SqBk5ZxdPlSXS0BIVHO1dZ9VgR57Ul6j+\n11o8nxuQN5xdI+Q9yLuk/bFpHxkmrjW8E3rrcLYbM6X0LLp5Tw0ncxMlWk0jt0N6\nSlTyVbOTwKubTzZeMcVDcg==\n-----END PRIVATE KEY-----\n",
+  "client_email": "openfashion@openfashion-458418.iam.gserviceaccount.com",
+  "client_id": "117310265298755456666",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/openfashion%40openfashion-458418.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

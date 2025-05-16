@@ -1,7 +1,7 @@
 from serpapi import GoogleSearch
 from urllib.parse import quote
 
-SERP_API_KEY = "deae6ab4df4abad6bf8312e325fb656a58a2056252a27d8b9164219233e3d5bf"
+SERP_API_KEY = "0ecd3e27d770b554710a9dfe9f59c71b76247389b215effcffc08d91f251cf35"
 
 def get_clothing_from_google_search(image_url: str, category_hint: str = "", color: str = ""):
     """

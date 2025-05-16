@@ -6,6 +6,7 @@ import time
 from google.cloud import vision
 from app.services.s3_service import upload_to_s3
 from app.services.search_service import get_clothing_from_google_search
+from app.services.remove_bg_service import remove_background
 from app.utils.image_utils import get_dominant_color
 
 client = vision.ImageAnnotatorClient()
@@ -61,30 +62,46 @@ def analyze_image(filepath: str, filename: str):
                 if cropped.size == 0:
                     continue
 
+                # Encode original crop and upload to S3
+                _, original_buf = cv2.imencode(".jpg", cropped)
+                timestamp = int(time.time())
+                base_name = f"{obj.name}_{x_min}_{y_min}_{timestamp}"
+
+                original_url = upload_to_s3(original_buf.tobytes(), f"{base_name}_original.jpg")
+
+                # Attempt remove.bg and upload
+                try:
+                    bg_removed_bytes = remove_background(original_buf.tobytes())
+                    removed_url = upload_to_s3(bg_removed_bytes, f"{base_name}_removed.jpg")
+                except Exception as e:
+                    print(f"⚠️ Background removal failed: {e}")
+                    removed_url = ""
+
                 dominant_color = get_dominant_color(cropped)
-                color_bgr = (dominant_color[2], dominant_color[1], dominant_color[0])
                 color_text = color_name(dominant_color)
+                color_bgr = (dominant_color[2], dominant_color[1], dominant_color[0])
 
+                # Draw on original image for annotation
                 cv2.polylines(annotated_image, [np.array(vertices)], True, color_bgr, 2)
-                cv2.putText(annotated_image, obj.name, (x_min, y_min - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_bgr, 2)
+                cv2.putText(annotated_image, obj.name, (x_min, y_min - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_bgr, 2)
 
-                _, buf = cv2.imencode(".jpg", cropped)
-                s3_url = upload_to_s3(buf.tobytes(), f"{obj.name}_{x_min}_{y_min}_{int(time.time())}.jpg")
+                # Search both versions and merge results (up to 10)
+                items_original = get_clothing_from_google_search(original_url, obj.name, color_text)
+                items_removed = get_clothing_from_google_search(removed_url, obj.name, color_text) if removed_url else []
 
-                clothing_items = get_clothing_from_google_search(
-                    image_url=s3_url,
-                    category_hint=obj.name,
-                    color=color_text
-                )
+                combined_items = (items_original + items_removed)[:10]
 
                 components.append({
                     "name": obj.name,
                     "dominant_color": dominant_color,
-                    "image_url": s3_url,
-                    "clothing_items": clothing_items
+                    "original_image_url": original_url,
+                    "bg_removed_url": removed_url,
+                    "clothing_items": combined_items
                 })
 
-            except Exception:
+            except Exception as e:
+                print(f"⚠️ Component processing failed: {e}")
                 continue
 
         try:
@@ -98,5 +115,5 @@ def analyze_image(filepath: str, filename: str):
             "components": components
         }
 
-    except Exception:
-        raise
+    except Exception as e:
+        raise RuntimeError(f"❌ analyze_image failed: {e}")
