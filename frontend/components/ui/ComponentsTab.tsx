@@ -3,6 +3,9 @@
 import { useState, useMemo, useRef, useEffect } from "react"
 import Image from "next/image"
 import { Heart, ExternalLink, Tag } from "lucide-react"
+import { toast } from "sonner"
+import { useAuth } from "@/contexts/AuthContext"
+import api, { setAuthToken } from "@/lib/api"
 
 interface ClothingItem {
   title: string
@@ -13,144 +16,159 @@ interface ClothingItem {
 
 interface Component {
   name: string
+  original_image_url: string
+  bg_removed_url: string
   dominant_color: string
   clothing_items: ClothingItem[]
 }
 
-interface ComponentTabsProps {
+interface ComponentsTabProps {
   components: Component[]
 }
 
-export default function ComponentTabs({ components }: ComponentTabsProps) {
-  const uniqueComponents = useMemo(() => {
-    const uniqueNames = new Set<string>()
-    return components.filter((component) => {
-      if (uniqueNames.has(component.name)) {
-        return false
-      }
-      uniqueNames.add(component.name)
-      return true
-    })
-  }, [components])
-
-  const [activeTab, setActiveTab] = useState(uniqueComponents[0]?.name || "")
+export default function ComponentTabs({ components }: ComponentsTabProps) {
+  const [activeTab, setActiveTab] = useState(0)
   const [likedItems, setLikedItems] = useState<Set<string>>(new Set())
-  const tabsRef = useRef<HTMLDivElement>(null)
-  const [indicatorStyle, setIndicatorStyle] = useState({
-    left: "0px",
-    width: "0px",
-  })
+  const { user } = useAuth()
 
-  const toggleLike = (itemId: string) => {
+  const handleLike = async (item: ClothingItem) => {
+    if (!user) {
+      toast.error("Please log in to save items")
+      return
+    }
+
+    const itemId = `${item.title}-${item.link}`
     const newLikedItems = new Set(likedItems)
-    if (newLikedItems.has(itemId)) {
+    
+    if (likedItems.has(itemId)) {
       newLikedItems.delete(itemId)
     } else {
       newLikedItems.add(itemId)
     }
+    
     setLikedItems(newLikedItems)
+    
+    try {
+      await api.post("/closet/add", {
+        name: item.title,
+        category: components[activeTab].name,
+        price: item.price,
+        link: item.link,
+        thumbnail: item.thumbnail
+      })
+      toast.success("Item saved to your closet!")
+    } catch (error) {
+      console.error("Failed to save item:", error)
+      toast.error("Failed to save item")
+    }
   }
 
-  useEffect(() => {
-    if (tabsRef.current) {
-      const activeTabElement = tabsRef.current.querySelector(`[data-tab="${activeTab}"]`)
-      if (activeTabElement) {
-        const { offsetLeft, offsetWidth } = activeTabElement as HTMLElement
-        setIndicatorStyle({
-          left: `${offsetLeft}px`,
-          width: `${offsetWidth}px`,
-        })
-      }
-    }
-  }, [activeTab])
-
   return (
-    <div className="meta-card animate-fade-in">
-      <div className="relative border-b border-gray-200">
-        <div className="flex overflow-x-auto scrollbar-hide" ref={tabsRef}>
-          {uniqueComponents.map((component) => (
-            <button
-              key={component.name}
-              data-tab={component.name}
-              onClick={() => setActiveTab(component.name)}
-              className={`px-4 py-3 font-medium text-center whitespace-nowrap transition-colors ${
-                activeTab === component.name ? "text-meta-pink" : "text-meta-text-secondary"
-              }`}
-            >
-              {component.name}
-            </button>
-          ))}
-        </div>
-        <div
-          className="absolute bottom-0 h-0.5 bg-meta-pink transition-all duration-300 ease-in-out"
-          style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
-        ></div>
+    <div className="space-y-6 h-full">
+      {/* Tabs - Fixed at top */}
+      <div className="flex space-x-2 overflow-x-auto pb-2 sticky top-0 bg-white z-10">
+        {components.map((component, index) => (
+          <button
+            key={index}
+            onClick={() => setActiveTab(index)}
+            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+              activeTab === index
+                ? "bg-meta-pink text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {component.name}
+          </button>
+        ))}
       </div>
 
-      <div className="p-4">
-        {uniqueComponents.map(
-          (component) =>
-            activeTab === component.name && (
-              <div key={component.name} className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {components
-                  .filter((comp) => comp.name === component.name)
-                  .flatMap((comp, compIndex) =>
-                    comp.clothing_items.map((item, itemIndex) => {
-                      const itemId = `${compIndex}-${itemIndex}-${item.title}`
-                      const isLiked = likedItems.has(itemId)
-
-                      return (
-                        <div
-                          key={itemId}
-                          className="bg-white rounded-meta shadow-sm overflow-hidden border border-gray-100 hover:shadow-meta-hover transition-all duration-200"
-                        >
-                          <div className="relative aspect-square">
-                            <Image
-                              src={item.thumbnail || "/placeholder.svg"}
-                              alt={item.title}
-                              fill
-                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                              style={{ objectFit: "cover" }}
-                              className="rounded-t-sm"
-                            />
-                            <button
-                              onClick={() => toggleLike(itemId)}
-                              className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-sm hover:shadow-md transition-shadow"
-                              aria-label={isLiked ? "Unlike" : "Like"}
-                            >
-                              <Heart
-                                className={`h-4 w-4 transition-colors ${isLiked ? "text-meta-pink fill-meta-pink" : "text-gray-600"}`}
-                              />
-                            </button>
-                          </div>
-                          <div className="p-3">
-                            <h4 className="font-medium text-xs truncate" title={item.title}>
-                              {item.title}
-                            </h4>
-                            <div className="flex justify-between items-center mt-2">
-                              <div className="flex items-center">
-                                <Tag className="h-3 w-3 text-meta-pink mr-1" />
-                                <span className="text-meta-pink font-semibold text-sm">{item.price}</span>
-                              </div>
-                              <a
-                                href={item.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-                                aria-label="View product"
-                              >
-                                <ExternalLink className="h-3 w-3 text-gray-600" />
-                              </a>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    }),
-                  )}
+      {/* Active Component Content - Scrollable container */}
+      {components[activeTab] && (
+        <div className="space-y-6 h-[calc(100vh-200px)] overflow-y-auto pr-2">
+          {/* Component Preview - Fixed height */}
+          <div className="grid grid-cols-2 gap-4 h-[300px]">
+            <div className="relative aspect-square rounded-lg overflow-hidden">
+              <Image
+                src={components[activeTab].original_image_url}
+                alt={components[activeTab].name}
+                fill
+                className="object-cover"
+              />
+            </div>
+            {components[activeTab].bg_removed_url && (
+              <div className="relative aspect-square rounded-lg overflow-hidden">
+                <Image
+                  src={components[activeTab].bg_removed_url}
+                  alt={`${components[activeTab].name} (no background)`}
+                  fill
+                  className="object-contain bg-gray-50"
+                />
               </div>
-            ),
-        )}
-      </div>
+            )}
+          </div>
+
+          {/* Color Information */}
+          <div className="flex items-center space-x-3">
+            <div
+              className="w-8 h-8 rounded-full border border-gray-200"
+              style={{ backgroundColor: components[activeTab].dominant_color }}
+            />
+            <span className="text-sm text-gray-600">
+              Dominant Color: {components[activeTab].dominant_color}
+            </span>
+          </div>
+
+          {/* Similar Items - Scrollable grid */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Similar Items</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2">
+              {components[activeTab].clothing_items.map((item, index) => (
+                <div
+                  key={index}
+                  className="group relative bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="relative aspect-square">
+                    <Image
+                      src={item.thumbnail}
+                      alt={item.title}
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button
+                        onClick={() => handleLike(item)}
+                        className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors"
+                      >
+                        <Heart
+                          className={`h-5 w-5 ${
+                            likedItems.has(`${item.title}-${item.link}`)
+                              ? "text-meta-pink fill-meta-pink"
+                              : "text-gray-600"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h4 className="font-medium text-sm line-clamp-2 mb-1">{item.title}</h4>
+                    <div className="flex items-center justify-between">
+                      <span className="text-meta-pink font-semibold">{item.price}</span>
+                      <a
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-600 hover:text-meta-pink transition-colors"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

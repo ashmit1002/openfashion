@@ -1,14 +1,24 @@
 from serpapi import GoogleSearch
 from urllib.parse import quote
+from app.config.settings import settings
+from app.services.similar_service import generate_fashion_search_query
 
-SERP_API_KEY = "0ecd3e27d770b554710a9dfe9f59c71b76247389b215effcffc08d91f251cf35"
+SERP_API_KEY = settings.SERP_API_KEY
 
 def get_clothing_from_google_search(image_url: str, category_hint: str = "", color: str = ""):
     """
     Uses Google Lens search via SerpAPI to find clothing items similar to the image.
     Optionally adds a category and color hint to improve accuracy.
     """
-    search_term = f"{color} {category_hint}".strip()
+    # Generate AI-enhanced search query
+    search_query = generate_fashion_search_query(
+        title=category_hint,  # Use category_hint as the title
+        category=category_hint,
+        context=color,  # Use color as context
+        image_url=image_url  # Pass the image URL for vision analysis
+    )
+    search_term = f"{color} {search_query}".strip()
+    
     params = {
         "engine": "google_lens",
         "url": image_url,

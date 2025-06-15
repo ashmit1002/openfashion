@@ -7,23 +7,56 @@ from google.cloud import vision
 from app.services.s3_service import upload_to_s3
 from app.services.search_service import get_clothing_from_google_search
 from app.services.remove_bg_service import remove_background
-from app.utils.image_utils import get_dominant_color
 
 client = vision.ImageAnnotatorClient()
 
-def color_name(rgb):
-    r, g, b = rgb
-    if r > 200 and g > 200 and b > 200:
-        return "white"
-    if r < 50 and g < 50 and b < 50:
-        return "black"
-    if r > g and r > b:
-        return "red"
-    if g > r and g > b:
-        return "green"
-    if b > r and b > g:
-        return "blue"
-    return "multicolor"
+# 🔁 Synonym normalization map
+CATEGORY_SYNONYMS = {
+    "footwear": "Shoe",
+    "shoes": "Shoe",
+    "sneaker": "Shoe",
+    "sneakers": "Shoe",
+    "handbag": "Bag",
+    "purse": "Bag",
+    "bag": "Bag",
+    "trousers": "Pants",
+    "pants": "Pants",
+    "denim": "Jeans",
+    "jacket": "Outerwear",
+    "coat": "Outerwear",
+    "hoodie": "Outerwear",
+    "t-shirt": "Top",
+    "tee": "Top",
+    "top": "Top",
+    "shirt": "Top"
+}
+
+def normalize_category(name: str) -> str:
+    return CATEGORY_SYNONYMS.get(name.lower(), name.title())
+
+def get_dominant_color(image):
+    """Extract the dominant color from an image."""
+    # Convert to RGB
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
+    # Reshape the image to be a list of pixels
+    pixels = image.reshape(-1, 3)
+    
+    # Convert to float32
+    pixels = np.float32(pixels)
+    
+    # Define criteria and apply kmeans()
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, .1)
+    flags = cv2.KMEANS_RANDOM_CENTERS
+    _, labels, palette = cv2.kmeans(pixels, 1, None, criteria, 10, flags)
+    
+    # Get the dominant color
+    dominant_color = palette[0].astype(int)
+    
+    # Convert to hex
+    hex_color = '#{:02x}{:02x}{:02x}'.format(*dominant_color)
+    
+    return hex_color
 
 def analyze_image(filepath: str, filename: str):
     try:
@@ -62,6 +95,9 @@ def analyze_image(filepath: str, filename: str):
                 if cropped.size == 0:
                     continue
 
+                # Get dominant color
+                dominant_color = get_dominant_color(cropped)
+
                 # Encode original crop and upload to S3
                 _, original_buf = cv2.imencode(".jpg", cropped)
                 timestamp = int(time.time())
@@ -77,26 +113,25 @@ def analyze_image(filepath: str, filename: str):
                     print(f"⚠️ Background removal failed: {e}")
                     removed_url = ""
 
-                dominant_color = get_dominant_color(cropped)
-                color_text = color_name(dominant_color)
-                color_bgr = (dominant_color[2], dominant_color[1], dominant_color[0])
-
                 # Draw on original image for annotation
-                cv2.polylines(annotated_image, [np.array(vertices)], True, color_bgr, 2)
+                cv2.polylines(annotated_image, [np.array(vertices)], True, (0, 255, 0), 2)
                 cv2.putText(annotated_image, obj.name, (x_min, y_min - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color_bgr, 2)
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
                 # Search both versions and merge results (up to 10)
-                items_original = get_clothing_from_google_search(original_url, obj.name, color_text)
-                items_removed = get_clothing_from_google_search(removed_url, obj.name, color_text) if removed_url else []
+                items_original = get_clothing_from_google_search(original_url, obj.name, dominant_color)
+                items_removed = get_clothing_from_google_search(removed_url, obj.name, dominant_color) if removed_url else []
 
                 combined_items = (items_original + items_removed)[:10]
 
+                # 🔀 Normalize the detected label
+                category = normalize_category(obj.name)
+
                 components.append({
-                    "name": obj.name,
-                    "dominant_color": dominant_color,
+                    "name": category,
                     "original_image_url": original_url,
                     "bg_removed_url": removed_url,
+                    "dominant_color": dominant_color,
                     "clothing_items": combined_items
                 })
 

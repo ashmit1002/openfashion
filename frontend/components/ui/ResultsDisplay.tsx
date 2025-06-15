@@ -2,12 +2,17 @@
 
 import Image from "next/image"
 import { ExternalLink, Heart, MessageCircle, Send, Bookmark } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { toast } from "sonner"
+import { useAuth } from "@/contexts/AuthContext"
+import api, { setAuthToken } from "@/lib/api"
 
 interface ClothingItem {
   thumbnail: string
   price: string
   link: string
+  title?: string
+  category?: string
 }
 
 interface Component {
@@ -28,6 +33,84 @@ interface ResultsDisplayProps {
 export default function ResultsDisplay({ results }: ResultsDisplayProps) {
   const [liked, setLiked] = useState(false)
   const [saved, setSaved] = useState(false)
+  const { user } = useAuth()
+
+  useEffect(() => {
+    // Check if item is in wishlist on component mount
+    console.log('Component mounted, user:', user)
+    checkWishlistStatus()
+  }, [user])
+
+  const checkWishlistStatus = async () => {
+    console.log('Checking wishlist status, user:', user)
+    if (!user) return
+    
+    try {
+      const token = localStorage.getItem('token')
+      console.log('Token:', token)
+      if (token) setAuthToken(token)
+      const response = await api.get('/api/wishlist/')
+      const data = response.data
+      setLiked(data.some((wishlistItem: any) => wishlistItem.link === window.location.href))
+    } catch (error) {
+      console.error('Error checking wishlist status:', error)
+    }
+  }
+
+  const handleLike = async () => {
+    console.log('Like button clicked, user:', user)
+    if (!user) {
+      console.log('No user found, showing error toast')
+      toast.error('Please login to save items to your wishlist')
+      return
+    }
+
+    try {
+      const token = localStorage.getItem('token')
+      console.log('Token for like action:', token)
+      if (token) setAuthToken(token)
+
+      const item = {
+        title: "Analyzed Outfit",
+        category: "Fashion Analysis",
+        price: 0,
+        link: window.location.href,
+        thumbnail: `data:image/jpeg;base64,${results?.annotated_image_base64}`,
+        tags: results?.components.map(c => c.name) || []
+      }
+
+      console.log('Attempting to', liked ? 'remove from' : 'add to', 'wishlist')
+      if (!liked) {
+        const response = await api.post('/api/wishlist/add', {
+          ...item,
+          user_id: user.id,
+          source: 'Analysis Result'
+        })
+        console.log('Add to wishlist response:', response)
+        toast.success('Added to wishlist', {
+          style: {
+            backgroundColor: '#4ade80',
+            color: 'white',
+          },
+        })
+      } else {
+        // Find the item ID first
+        const response = await api.get('/api/wishlist/')
+        const items = response.data
+        const wishlistItem = items.find((i: any) => i.link === item.link)
+        
+        if (wishlistItem) {
+          const deleteResponse = await api.delete(`/api/wishlist/${wishlistItem._id}`)
+          console.log('Delete from wishlist response:', deleteResponse)
+          toast.success('Removed from wishlist')
+        }
+      }
+      setLiked(!liked)
+    } catch (error) {
+      console.error('Error toggling wishlist:', error)
+      toast.error('Failed to update wishlist')
+    }
+  }
 
   if (!results) {
     return null
@@ -65,7 +148,7 @@ export default function ResultsDisplay({ results }: ResultsDisplayProps) {
           <div className="flex space-x-4">
             <button
               className="meta-icon-button"
-              onClick={() => setLiked(!liked)}
+              onClick={handleLike}
               aria-label={liked ? "Unlike" : "Like"}
             >
               <Heart

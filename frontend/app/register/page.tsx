@@ -1,9 +1,8 @@
 "use client"
 import { useState } from "react"
 import type React from "react"
-
 import { useRouter } from "next/navigation"
-import api from "../lib/api"
+import { useAuth } from "@/contexts/AuthContext"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +11,7 @@ import { Eye, EyeOff, UserPlus, ShoppingBag } from "lucide-react"
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("")
+  const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -19,6 +19,7 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
+  const { register } = useAuth()
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,13 +34,19 @@ export default function RegisterPage() {
     setSuccess("")
 
     try {
-      await api.post("/auth/register", { email, password })
-      setSuccess("Registration successful! You can now log in.")
+      await register(email, password, username)
+      setSuccess("Registration successful! Redirecting to home...")
       setTimeout(() => {
-        router.push("/login")
+        router.push("/")
       }, 2000)
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Registration failed. Please try again.")
+      if (err.response?.data?.detail) {
+        setError(Array.isArray(err.response.data.detail) 
+          ? err.response.data.detail[0].msg 
+          : err.response.data.detail)
+      } else {
+        setError("Registration failed. Please try again.")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -81,6 +88,24 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
+                required
+                className="w-full"
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                htmlFor="username"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Username
+              </label>
+              <Input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="johndoe"
                 required
                 className="w-full"
                 disabled={isLoading}

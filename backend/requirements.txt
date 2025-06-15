@@ -6,4 +6,9 @@ opencv-python
 numpy
 requests
 serpapi
-google-search-results 
+google-search-results
+python-dotenv
+pymongo
+fastapi
+uvicorn
+python-multipart

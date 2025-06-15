@@ -1,12 +1,13 @@
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
+from app.config.settings import settings
 
 security = HTTPBearer()
 
 # Must match your JWT settings
-SECRET_KEY = "secretkey123"
-ALGORITHM = "HS256"
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
 
 def get_current_user_id(
     credentials: HTTPAuthorizationCredentials = Depends(security)

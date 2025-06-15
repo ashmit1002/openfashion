@@ -1,19 +1,20 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation" // Using next/navigation for App Router
-import api, { setAuthToken } from "../lib/api"
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { PlusCircle, ShoppingBag, Tag, ExternalLink, Trash2, Pencil, Search, Filter, Loader2 } from "lucide-react"
+import { useEffect, useState, useRef } from "react"
+import { useRouter } from "next/navigation"
+import api, { setAuthToken } from "../../lib/api"
 import Image from "next/image"
-import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Trash2, ExternalLink, Edit2 } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
+import { toast } from "sonner"
 
 interface ClothingItem {
   name: string
   thumbnail: string
   price: string
   link: string
+  category: string
 }
 
 interface ComponentGroup {
@@ -22,321 +23,306 @@ interface ComponentGroup {
   clothing_items: ClothingItem[]
 }
 
+interface User {
+  id: string
+  email: string
+  username: string
+  name?: string
+  display_name?: string
+  avatar_url?: string
+  bio?: string
+  followers: string[]
+  following: string[]
+}
+
 export default function ClosetPage() {
   const [components, setComponents] = useState<ComponentGroup[]>([])
-  const [filteredComponents, setFilteredComponents] = useState<ComponentGroup[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<string>("All")
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const [searchTerm, setSearchTerm] = useState("")
-  const [deleteLoading, setDeleteLoading] = useState<string | null>(null)
   const router = useRouter()
 
+  // Profile state
+  const { user } = useAuth()
+  const [profile, setProfile] = useState<User | null>(null)
+  const [editMode, setEditMode] = useState(false)
+  const [editData, setEditData] = useState({ display_name: '', avatar_url: '', bio: '' })
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Fetch closet
   const fetchCloset = async () => {
     const token = localStorage.getItem("token")
-    if (!token) {
-      router.push("/login")
-      return
-    }
-
+    if (!token) return router.push("/login")
     setAuthToken(token)
     setLoading(true)
     try {
       const res = await api.get("/closet/")
       setComponents(res.data.closet || [])
-      setFilteredComponents(res.data.closet || [])
     } catch (err) {
       console.error("Failed to fetch closet:", err)
-      setError("Failed to fetch closet data")
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    fetchCloset()
-  }, [])
-
-  useEffect(() => {
-    if (searchTerm) {
-      const filtered = components
-        .map((group) => {
-          // Filter items within each group
-          const filteredItems = group.clothing_items.filter(
-            (item) =>
-              item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              group.name.toLowerCase().includes(searchTerm.toLowerCase()),
-          )
-
-          // Return the group with filtered items
-          return {
-            ...group,
-            clothing_items: filteredItems,
-          }
-        })
-        .filter((group) => group.clothing_items.length > 0) // Only keep groups with matching items
-
-      setFilteredComponents(filtered)
-    } else {
-      setFilteredComponents(components)
-    }
-  }, [searchTerm, components])
-
-  const handleDelete = async (link: string, category: string, itemName = "this item") => {
-    const token = localStorage.getItem("token")
-    if (!token) {
-      return router.push("/login")
-    }
-
-    if (!confirm(`Are you sure you want to delete "${itemName}"?`)) {
-      return
-    }
-
-    setAuthToken(token)
-    setDeleteLoading(`${category}-${link}`)
-
+  // Fetch profile
+  const fetchProfile = async () => {
+    if (!user) return
     try {
-      await api.delete("/closet/delete", {
-        params: { link, category },
-      })
-      await fetchCloset() // refresh
-    } catch (err) {
-      console.error("Delete failed:", err)
-      alert("Failed to delete item")
-    } finally {
-      setDeleteLoading(null)
+      const response = await api.get(`/users/user/${user.username}`)
+      setProfile(response.data)
+    } catch (error) {
+      console.error("Error fetching profile:", error)
     }
   }
 
+  useEffect(() => {
+    fetchCloset()
+    fetchProfile()
+    // eslint-disable-next-line
+  }, [user])
+
+  const getAllItems = (): ClothingItem[] => {
+    return components.flatMap(group =>
+      selectedCategory === "All" || group.name === selectedCategory
+        ? group.clothing_items.map(item => ({ ...item, category: group.name }))
+        : []
+    )
+  }
+
+  const handleDelete = async (link: string, category: string) => {
+    const token = localStorage.getItem("token")
+    if (!token) return router.push("/login")
+    try {
+      await api.delete("/closet/delete", { params: { link, category } })
+      fetchCloset()
+    } catch (err) {
+      console.error("Delete failed:", err)
+    }
+  }
+
+  // Profile edit logic
+  const handleEdit = () => {
+    setEditData({
+      display_name: profile?.display_name || '',
+      avatar_url: profile?.avatar_url || '',
+      bio: profile?.bio || '',
+    });
+    setAvatarPreview(profile?.avatar_url || null);
+    setEditMode(true);
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+        setEditData(prev => ({ ...prev, avatar_url: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      await api.put('/users/user/profile', editData);
+      toast.success("Profile updated!", { style: { background: "#e9fbe9", color: "#1a7f37" } })
+      setEditMode(false);
+      fetchProfile();
+    } catch (error) {
+      console.error("Error updating profile:", error)
+    }
+  };
+
+  const handleCancel = () => {
+    if (profile) {
+      setEditData({
+        display_name: profile.display_name || '',
+        avatar_url: profile.avatar_url || '',
+        bio: profile.bio || '',
+      });
+      setAvatarPreview(profile.avatar_url || null);
+    }
+    setEditMode(false);
+  };
+
+  const allCategories = ["All", ...new Set(components.map(group => group.name))]
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Your Closet</h1>
-          <p className="text-gray-600 mt-1">Manage and browse your saved fashion items</p>
-        </div>
-        <Button
-          onClick={() => router.push("/add-item")}
-          className="bg-meta-pink hover:bg-meta-pink/90 text-white shadow-sm"
-        >
-          <PlusCircle className="mr-2 h-4 w-4" /> Add New Item
-        </Button>
-      </div>
-
-      <div className="mb-8 flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-grow">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="Search your closet..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <Button variant="outline" className="flex items-center gap-2">
-          <Filter className="h-4 w-4" /> Filter
-        </Button>
-      </div>
-
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-12">
-          <Loader2 className="h-12 w-12 text-meta-pink animate-spin mb-4" />
-          <p className="text-gray-600">Loading your closet...</p>
-        </div>
-      ) : error ? (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-6 flex flex-col items-center justify-center text-center">
-            <div className="text-red-500 mb-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-12 w-12"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      {/* Profile Section */}
+      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-2xl mx-auto mb-10">
+        <div className="flex flex-col items-center">
+          <div className="w-28 h-28 rounded-full border-4 border-meta-pink bg-gray-100 flex items-center justify-center text-5xl font-bold text-meta-pink mb-4 overflow-hidden relative">
+            {avatarPreview || profile?.avatar_url ? (
+              <img src={avatarPreview || profile?.avatar_url} alt="avatar" className="w-full h-full object-cover rounded-full" />
+            ) : (
+              (profile?.display_name?.[0] || profile?.username?.[0] || "A").toUpperCase()
+            )}
+            {editMode && (
+              <>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleAvatarChange}
                 />
-              </svg>
+                <button
+                  type="button"
+                  className="absolute bottom-2 right-2 bg-meta-pink text-white rounded-full p-2 shadow hover:bg-meta-pink/90"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Change avatar"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652l-1.688 1.687m-2.651-2.651a4.5 4.5 0 11-6.364 6.364 4.5 4.5 0 016.364-6.364zm-9.193 9.193a4.5 4.5 0 016.364 6.364 4.5 4.5 0 01-6.364-6.364z" />
+                  </svg>
+                </button>
+              </>
+            )}
+          </div>
+          <div className="text-2xl font-bold text-gray-900">{profile?.display_name || profile?.username}</div>
+          <div className="text-gray-500 mb-2">@{profile?.username}</div>
+          <div className="flex gap-8 mb-6 text-center">
+            <div>
+              <span className="font-semibold text-gray-900">{profile?.followers.length || 0}</span>
+              <span className="text-gray-500"> Followers</span>
             </div>
-            <h3 className="text-lg font-medium text-red-800 mb-2">Something went wrong</h3>
-            <p className="text-red-600 mb-4">{error}</p>
+            <div>
+              <span className="font-semibold text-gray-900">{profile?.following.length || 0}</span>
+              <span className="text-gray-500"> Following</span>
+            </div>
+          </div>
+          <form className="w-full max-w-lg space-y-4" onSubmit={handleSave}>
+            <div className="flex gap-4">
+              <input
+                className="flex-1 rounded-lg border border-gray-200 focus:border-meta-pink focus:ring-meta-pink px-3 py-2"
+                placeholder="Display Name"
+                value={editData.display_name}
+                onChange={e => setEditData({ ...editData, display_name: e.target.value })}
+                disabled={!editMode}
+              />
+            </div>
+            <textarea
+              className="w-full rounded-lg border border-gray-200 focus:border-meta-pink focus:ring-meta-pink px-3 py-2 min-h-[60px]"
+              placeholder="Bio"
+              value={editData.bio}
+              onChange={e => setEditData({ ...editData, bio: e.target.value })}
+              disabled={!editMode}
+              rows={3}
+            />
+            <div className="flex gap-2 justify-end">
+              {editMode ? (
+                <>
+                  <Button type="button" variant="outline" onClick={handleCancel} className="border-gray-300">Cancel</Button>
+                  <Button type="submit" className="bg-meta-pink text-white hover:bg-meta-pink/90">Save</Button>
+                </>
+              ) : (
+                <Button type="button" className="bg-meta-pink text-white hover:bg-meta-pink/90" onClick={handleEdit}>
+                  Edit Profile
+                </Button>
+              )}
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Closet Section */}
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-12">
+        {/* Left Column: Pinterest-style Masonry Grid, now more airy and modern */}
+        <div>
+          <div className="flex justify-between items-center mb-10">
+            <h1 className="text-3xl font-extrabold tracking-tight">Your Closet</h1>
             <Button
-              onClick={() => fetchCloset()}
-              variant="outline"
-              className="border-red-300 text-red-700 hover:bg-red-100"
+              className="bg-meta-pink hover:bg-meta-pink/90 text-white px-6 py-2 rounded-full shadow-md"
+              onClick={() => router.push("/add-item")}
             >
-              Try Again
+              + Add Item
             </Button>
-          </CardContent>
-        </Card>
-      ) : components.length === 0 ? (
-        <Card className="border-dashed border-2 border-gray-300 bg-gray-50">
-          <CardContent className="p-12 text-center">
-            <ShoppingBag className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-xl font-medium text-gray-900 mb-2">Your closet is empty</h3>
-            <p className="text-gray-600 mb-6 max-w-md mx-auto">
-              Upload an outfit to analyze and save items to your closet, or add items manually.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={() => router.push("/")} className="bg-meta-pink hover:bg-meta-pink/90 text-white">
-                <ShoppingBag className="mr-2 h-4 w-4" /> Analyze an Outfit
-              </Button>
-              <Button onClick={() => router.push("/add-item")} variant="outline">
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Manually
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : filteredComponents.length === 0 ? (
-        <Card className="border-dashed border-2 border-gray-300 bg-gray-50">
-          <CardContent className="p-8 text-center">
-            <Search className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No matching items found</h3>
-            <p className="text-gray-600 mb-4">We couldn't find any items matching "{searchTerm}"</p>
-            <Button onClick={() => setSearchTerm("")} variant="outline">
-              Clear Search
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredComponents.map((group, index) => (
-              <Card
-                key={index}
-                className="overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200"
-              >
-                <div className="relative h-48 bg-gray-100 overflow-hidden group">
-                  {group.image_url ? (
-                    <>
-                      <Image
-                        src={group.image_url || "/placeholder.svg"}
-                        alt={group.name || "Category Image"}
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    </>
-                  ) : (
-                    <div className="flex items-center justify-center h-full bg-gray-200">
-                      <Tag className="h-12 w-12 text-gray-400" />
+          </div>
+          {loading ? (
+            <p className="text-gray-400 text-lg">Loading your closet...</p>
+          ) : (
+            <div className="[column-count:1] sm:[column-count:2] lg:[column-count:3] xl:[column-count:4] [column-gap:2.5rem]">
+              {getAllItems().map((item, index) => (
+                <div
+                  key={index}
+                  className="mb-10 break-inside-avoid rounded-3xl shadow-xl bg-white overflow-hidden group relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
+                  style={{ minHeight: 320 }}
+                >
+                  <div className="relative w-full aspect-[3/4] bg-gray-100">
+                    <Image
+                      src={item.thumbnail || "/placeholder.svg"}
+                      alt={item.name}
+                      fill
+                      className="object-cover rounded-3xl"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 px-5 py-4 flex flex-col gap-1"
+                      style={{
+                        background: 'rgba(255,255,255,0.35)',
+                        backdropFilter: 'blur(12px)',
+                        borderBottomLeftRadius: '1.5rem',
+                        borderBottomRightRadius: '1.5rem',
+                      }}
+                    >
+                      <div className="text-gray-900 font-bold text-lg truncate drop-shadow-sm">{item.name}</div>
+                      <div className="text-meta-pink font-extrabold text-base drop-shadow-sm">{item.price}</div>
                     </div>
-                  )}
-                  <div className="absolute top-3 right-3">
-                    <span className="inline-flex items-center rounded-full bg-meta-pink px-2.5 py-0.5 text-xs font-semibold text-white">
-                      {group.clothing_items.length} {group.clothing_items.length === 1 ? "item" : "items"}
-                    </span>
+                  </div>
+                  {/* Actions: hidden until hover */}
+                  <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                    <a
+                      href={item.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-white/80 hover:bg-meta-pink text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
+                      title="View product"
+                    >
+                      <ExternalLink className="h-5 w-5" />
+                    </a>
+                    <button
+                      onClick={() => router.push(`/edit-item?title=${encodeURIComponent(item.name)}&category=${encodeURIComponent(item.category)}&price=${encodeURIComponent(item.price)}&link=${encodeURIComponent(item.link)}&thumbnail=${encodeURIComponent(item.thumbnail)}`)}
+                      className="bg-white/80 hover:bg-blue-600 text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
+                      title="Edit"
+                    >
+                      <Edit2 className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(item.link, item.category)}
+                      className="bg-white/80 hover:bg-red-600 text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
                   </div>
                 </div>
-
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-xl font-bold">{group.name}</CardTitle>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="pt-0">
-                  <ul className="divide-y divide-gray-100">
-                    {group.clothing_items.map((item, i) => (
-                      <li key={i} className="py-3 first:pt-0 last:pb-0">
-                        <div className="flex items-center gap-3">
-                          <div className="relative w-12 h-12 flex-shrink-0 rounded-md overflow-hidden border border-gray-200">
-                            {item.thumbnail ? (
-                              <Image
-                                src={item.thumbnail || "/placeholder.svg"}
-                                alt={item.name || "Clothing Item"}
-                                fill
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                                <Tag className="h-5 w-5 text-gray-400" />
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex-grow min-w-0">
-                            <p className="text-sm font-medium truncate" title={item.name}>
-                              {item.name || "Unnamed Item"}
-                            </p>
-                            <p className="text-xs font-semibold text-meta-pink">
-                              {item.price || "Price not available"}
-                            </p>
-                          </div>
-
-                          <div className="flex items-center gap-1">
-                            <a
-                              href={item.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1.5 rounded-full text-gray-500 hover:text-meta-pink hover:bg-gray-100"
-                              title="View product"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                            <button
-                              onClick={() =>
-                                router.push(
-                                  `/edit-item?title=${encodeURIComponent(item.name || "")}&category=${encodeURIComponent(
-                                    group.name,
-                                  )}&price=${encodeURIComponent(item.price || "")}&link=${encodeURIComponent(
-                                    item.link || "",
-                                  )}&thumbnail=${encodeURIComponent(item.thumbnail || "")}`,
-                                )
-                              }
-                              className="p-1.5 rounded-full text-gray-500 hover:text-blue-600 hover:bg-gray-100"
-                              title="Edit"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(item.link, group.name, item.name)}
-                              className="p-1.5 rounded-full text-gray-500 hover:text-red-600 hover:bg-gray-100"
-                              title="Delete"
-                              disabled={deleteLoading === `${group.name}-${item.link}`}
-                            >
-                              {deleteLoading === `${group.name}-${item.link}` ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-
-                <CardFooter className="pt-0 pb-4 flex justify-end">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-gray-600 hover:text-meta-pink"
-                    onClick={() => router.push(`/category/${encodeURIComponent(group.name)}`)}
-                  >
-                    View All
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-
-          {components.length > 0 && (
-            <div className="mt-8 text-center">
-              <p className="text-gray-500 text-sm mb-2">
-                Showing {filteredComponents.reduce((acc, group) => acc + group.clothing_items.length, 0)} items across{" "}
-                {filteredComponents.length} categories
-              </p>
+              ))}
             </div>
           )}
-        </>
-      )}
+        </div>
+
+        {/* Right Column: Filters */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-gray-800">Categories</h2>
+          <div className="space-y-2">
+            {allCategories.map((cat, i) => (
+              <button
+                key={i}
+                onClick={() => setSelectedCategory(cat)}
+                className={`block text-left w-full text-sm px-4 py-2 rounded-md ${
+                  selectedCategory === cat
+                    ? "bg-meta-pink text-white"
+                    : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

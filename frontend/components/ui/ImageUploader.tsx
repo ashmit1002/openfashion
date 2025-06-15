@@ -2,8 +2,6 @@
 
 import { useState } from "react"
 import { Upload, Camera, X } from "lucide-react"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
 
 interface AnalysisResult {
   annotated_image_base64: string
@@ -28,7 +26,6 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
   const [dragActive, setDragActive] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [isOwner, setIsOwner] = useState(false)
 
   const handleUpload = async (file: File) => {
     if (!file) return
@@ -41,12 +38,11 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
 
     const formData = new FormData()
     formData.append("image", file)
-    formData.append("is_owner", isOwner.toString())
 
     setIsUploading(true)
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/upload`, {
+      const response = await fetch(`http://127.0.0.1:8000/api/upload/`, {
         method: "POST",
         body: formData,
         headers: {
@@ -147,10 +143,6 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
                   />
                 </label>
               </div>
-              <div className="flex items-center space-x-2 pt-4">
-                <Switch id="is-you" checked={isOwner} onCheckedChange={setIsOwner} disabled={isUploading} />
-                <Label htmlFor="is-you">Is this you?</Label>
-              </div>
             </div>
           </div>
         ) : (
@@ -170,10 +162,6 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
               </button>
             </div>
             <div className="p-4 bg-white space-y-4">
-              <div className="flex items-center space-x-2">
-                <Switch id="is-you" checked={isOwner} onCheckedChange={setIsOwner} disabled={isUploading} />
-                <Label htmlFor="is-you">Is this you?</Label>
-              </div>
               <button
                 type="submit"
                 disabled={isUploading}

@@ -16,7 +16,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@lib/*": ["app/lib/*"],
+      "@lib/*": ["lib/*"],
       "@components/*": ["app/ui/*"],
       "@pages/*": ["app/pages/*"],
       "@contexts/*": ["contexts/*"]

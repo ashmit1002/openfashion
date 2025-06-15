@@ -1,9 +1,8 @@
 "use client"
 import { useState } from "react"
 import type React from "react"
-
 import { useRouter } from "next/navigation"
-import api, { setAuthToken } from "../lib/api"
+import { useAuth } from "@/contexts/AuthContext"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,6 +16,7 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
+  const { login } = useAuth()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,15 +24,7 @@ export default function LoginPage() {
     setError("")
 
     try {
-      const form = `username=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
-      const res = await api.post("/auth/login", form, {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      })
-      const token = res.data.access_token
-      setAuthToken(token)
-      localStorage.setItem("token", token)
+      await login(email, password)
       router.push("/closet")
     } catch (err: any) {
       setError(err.response?.data?.detail || "Login failed. Please check your credentials and try again.")

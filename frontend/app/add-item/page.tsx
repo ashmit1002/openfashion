@@ -1,20 +1,32 @@
 "use client"
 import { useState, useEffect } from "react"
-import type React from "react"
-
 import { useRouter } from "next/navigation"
-import api, { setAuthToken } from "../lib/api"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import api, { setAuthToken } from "../../lib/api"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Save, ArrowLeft } from "lucide-react"
+import Image from "next/image"
+
+const CATEGORY_OPTIONS = [
+  "Top",
+  "Bottom",
+  "Outerwear",
+  "Footwear",
+  "Accessory",
+  "Bag",
+  "Dress",
+  "Suit",
+  "Hat"
+]
 
 export default function AddItemPage() {
   const [item, setItem] = useState("")
-  const [category, setCategory] = useState("")
+  const [category, setCategory] = useState("Top")
   const [price, setPrice] = useState("")
   const [link, setLink] = useState("")
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -22,18 +34,23 @@ export default function AddItemPage() {
 
   useEffect(() => {
     const token = localStorage.getItem("token")
-    if (!token) {
-      router.push("/login")
-    }
+    if (!token) router.push("/login")
   }, [router])
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setThumbnailFile(file)
+      const reader = new FileReader()
+      reader.onload = () => setPreviewUrl(reader.result as string)
+      reader.readAsDataURL(file)
+    }
+  }
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     const token = localStorage.getItem("token")
-    if (!token) {
-      router.push("/login")
-      return
-    }
+    if (!token) return router.push("/login")
 
     setIsLoading(true)
     setError("")
@@ -51,21 +68,18 @@ export default function AddItemPage() {
       }
 
       await api.post("/closet/add", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data"
-        }
+        headers: { "Content-Type": "multipart/form-data" }
       })
 
-      setSuccess("Item successfully added to your closet!")
+      setSuccess("Item successfully added!")
       setItem("")
-      setCategory("")
+      setCategory("Top")
       setPrice("")
       setLink("")
       setThumbnailFile(null)
+      setPreviewUrl(null)
 
-      setTimeout(() => {
-        router.push("/closet")
-      }, 2000)
+      setTimeout(() => router.push("/closet"), 2000)
     } catch (e: any) {
       setError(e.response?.data?.detail || "Failed to add item. Please try again.")
     } finally {
@@ -74,66 +88,70 @@ export default function AddItemPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="max-w-6xl mx-auto px-4 py-8">
       <Button variant="ghost" onClick={() => router.push("/closet")} className="mb-6">
         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Closet
       </Button>
 
       <Card className="shadow-meta">
-        <CardHeader>
-          <CardTitle className="text-2xl">Add New Item</CardTitle>
-          <CardDescription>Add a new fashion item to your closet</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm">{error}</div>
-          )}
-          {success && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-600 rounded-md text-sm">
-              {success}
-            </div>
-          )}
+        <CardContent className="p-6 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-6">
+          {/* Upload Box */}
+          <div className="w-full aspect-[3/4] border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center bg-gray-50 relative">
+            {previewUrl ? (
+              <Image src={previewUrl} alt="Preview" fill className="object-cover rounded-md" />
+            ) : (
+              <label className="text-center text-gray-500 text-sm px-4 cursor-pointer">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <span className="text-lg">➕</span>
+                <p>Choose a file or drag and drop it here</p>
+                <p className="text-xs mt-2">.jpg under 20MB</p>
+              </label>
+            )}
+          </div>
+
+          {/* Form */}
           <form onSubmit={handleAdd} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="item" className="text-sm font-medium">Item Name</label>
-              <Input id="item" value={item} onChange={(e) => setItem(e.target.value)} placeholder="Blue Denim Jacket" required disabled={isLoading} />
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            {success && <p className="text-sm text-green-600">{success}</p>}
+
+            <div>
+              <label className="text-sm font-medium">Item Name</label>
+              <Input value={item} onChange={(e) => setItem(e.target.value)} required disabled={isLoading} />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="category" className="text-sm font-medium">Category</label>
-              <Input id="category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Outerwear" required disabled={isLoading} />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="price" className="text-sm font-medium">Price</label>
-              <Input id="price" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="$49.99" required disabled={isLoading} />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="link" className="text-sm font-medium">Product Link</label>
-              <Input id="link" type="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://example.com/product" required disabled={isLoading} />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="thumbnail" className="text-sm font-medium">Upload Thumbnail</label>
-              <Input
-                id="thumbnail"
-                type="file"
-                accept="image/*"
-                onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
-                required
+            <div>
+              <label className="text-sm font-medium">Category</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full border rounded-md px-3 py-2 text-sm"
                 disabled={isLoading}
-              />
+              >
+                {CATEGORY_OPTIONS.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Price</label>
+              <Input value={price} onChange={(e) => setPrice(e.target.value)} required disabled={isLoading} />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Product Link</label>
+              <Input value={link} onChange={(e) => setLink(e.target.value)} required disabled={isLoading} />
             </div>
 
             <Button type="submit" className="w-full bg-meta-pink hover:bg-meta-pink/90" disabled={isLoading}>
-              {isLoading ? (
-                <span className="flex items-center justify-center">Saving...</span>
-              ) : (
-                <span className="flex items-center justify-center">
-                  <Save className="mr-2 h-4 w-4" /> Save to Closet
-                </span>
-              )}
+              {isLoading ? "Saving..." : <><Save className="mr-2 h-4 w-4" /> Save to Closet</>}
             </Button>
           </form>
         </CardContent>

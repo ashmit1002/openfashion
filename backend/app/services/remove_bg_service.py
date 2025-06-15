@@ -1,7 +1,8 @@
 import requests
 import io
+from app.config.settings import settings
 
-REMOVE_BG_API_KEY = "nHBhSzQcTGoUExYq53VooKEE"
+REMOVE_BG_API_KEY = settings.REMOVE_BG_API_KEY
 
 def remove_background(image_bytes: bytes) -> bytes:
     response = requests.post(

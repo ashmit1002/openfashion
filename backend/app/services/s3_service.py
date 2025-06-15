@@ -1,8 +1,9 @@
 import boto3
 from botocore.exceptions import NoCredentialsError
+from app.config.settings import settings
 
 # Replace with your actual bucket name
-S3_BUCKET_NAME = "fashionwebapp"
+S3_BUCKET_NAME = settings.S3_BUCKET_NAME
 
 # Initialize S3 client (make sure your AWS credentials are configured)
 s3_client = boto3.client("s3")
