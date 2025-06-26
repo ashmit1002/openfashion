@@ -31,8 +31,7 @@ app.include_router(upload.router, prefix="/api/upload", tags=["Upload"])  # Uplo
 app.include_router(closet.router, prefix="/api/closet", tags=["Closet"])  # Closet
 app.include_router(wishlist.router, prefix="/api/wishlist", tags=["Wishlist"])  # Wishlist
 app.include_router(users_router, prefix="/api/users", tags=["Users"])  # Users
-app.include_router(
-    style_quiz_router, prefix="/api/style", tags=["Style"]
-)  # Style Quiz & Recommendations
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.include_router(style_quiz_router, prefix="/api/style", tags=["Style"])  # Style Quiz & Recommendations
 
+# Serve static uploads
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

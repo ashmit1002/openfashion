@@ -500,7 +500,7 @@ Please provide the search queries in a JSON array of strings.
         try:
             search_queries = json.loads(response.output_text)
             if not isinstance(search_queries, list) or not all(isinstance(q, str) for q in search_queries):
-                 raise ValueError("Invalid JSON response format: expected a list of strings.")
+                raise ValueError("Invalid JSON response format: expected a list of strings.")
 
             return {"search_queries": search_queries}
 
