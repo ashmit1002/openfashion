@@ -1,3 +1,4 @@
+import logging
 import cv2
 import io
 import base64
@@ -9,6 +10,8 @@ from app.services.search_service import get_clothing_from_google_search
 from app.services.remove_bg_service import remove_background
 
 client = vision.ImageAnnotatorClient()
+
+logger = logging.getLogger(__name__)
 
 # 🔁 Synonym normalization map
 CATEGORY_SYNONYMS = {
@@ -110,7 +113,7 @@ def analyze_image(filepath: str, filename: str):
                     bg_removed_bytes = remove_background(original_buf.tobytes())
                     removed_url = upload_to_s3(bg_removed_bytes, f"{base_name}_removed.jpg")
                 except Exception as e:
-                    print(f"⚠️ Background removal failed: {e}")
+                    logger.warning("\u26a0\ufe0f Background removal failed: %s", e)
                     removed_url = ""
 
                 # Draw on original image for annotation
@@ -136,7 +139,7 @@ def analyze_image(filepath: str, filename: str):
                 })
 
             except Exception as e:
-                print(f"⚠️ Component processing failed: {e}")
+                logger.warning("\u26a0\ufe0f Component processing failed: %s", e)
                 continue
 
         try:
