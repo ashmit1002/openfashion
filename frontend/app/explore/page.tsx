@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Heart, Bookmark, Share2 } from "lucide-react";
 import { useInView } from "react-intersection-observer";
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { trackInteraction } from "@/lib/api";
 // We will add more imports later as needed, e.g., for displaying search results
 
 // Define interfaces for Google Custom Search API response
@@ -47,6 +49,7 @@ export default function ExplorePage() {
   const [currentPage, setCurrentPage] = useState(0);
   const [likedItems, setLikedItems] = useState<Set<string>>(new Set());
   const [savedItems, setSavedItems] = useState<Set<string>>(new Set());
+  const { user } = useAuth();
   const RESULTS_PER_PAGE = 20;
 
   // Intersection Observer for infinite scroll
@@ -138,7 +141,7 @@ export default function ExplorePage() {
     performSearch();
   }, [searchQueries, currentPage]);
 
-  const handleLike = (itemId: string) => {
+  const handleLike = async (itemId: string) => {
     setLikedItems(prev => {
       const newSet = new Set(prev);
       if (newSet.has(itemId)) {
@@ -148,9 +151,12 @@ export default function ExplorePage() {
       }
       return newSet;
     });
+    if (user) {
+      await trackInteraction("like", user.id, { link: itemId });
+    }
   };
 
-  const handleSave = (itemId: string) => {
+  const handleSave = async (itemId: string) => {
     setSavedItems(prev => {
       const newSet = new Set(prev);
       if (newSet.has(itemId)) {
@@ -160,6 +166,9 @@ export default function ExplorePage() {
       }
       return newSet;
     });
+    if (user) {
+      await trackInteraction("wishlist", user.id, { link: itemId });
+    }
   };
 
   if (loading) {

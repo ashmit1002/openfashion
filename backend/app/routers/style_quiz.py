@@ -515,3 +515,4 @@ Please provide the search queries in a JSON array of strings.
     except Exception as e:
         logger.error("OpenAI API Error: %s", str(e))
         raise HTTPException(status_code=500, detail=f"Error calling OpenAI API: {str(e)}")
+

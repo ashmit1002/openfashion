@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { trackInteraction } from '@/lib/api';
 
 interface WishlistButtonProps {
   item: {
@@ -46,17 +47,17 @@ export function WishlistButton({ item, className = '' }: WishlistButtonProps) {
 
     try {
       if (isInWishlist) {
-        // Find the item ID first
         const response = await fetch('/api/wishlist');
         const items = await response.json();
         const wishlistItem = items.find((i: any) => i.link === item.link);
-        
+
         if (wishlistItem) {
           await fetch(`/api/wishlist/${wishlistItem._id}`, {
             method: 'DELETE',
           });
           setIsInWishlist(false);
           toast.success('Removed from wishlist');
+          await trackInteraction('wishlist_remove', user.id, { link: item.link });
         }
       } else {
         await fetch('/api/wishlist/add', {
@@ -72,6 +73,7 @@ export function WishlistButton({ item, className = '' }: WishlistButtonProps) {
         });
         setIsInWishlist(true);
         toast.success('Added to wishlist');
+        await trackInteraction('wishlist_add', user.id, { link: item.link });
       }
     } catch (error) {
       console.error('Error toggling wishlist:', error);
