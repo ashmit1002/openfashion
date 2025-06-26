@@ -37,6 +37,13 @@ export default function ComponentTabs({ components }: ComponentsTabProps) {
       return
     }
 
+    const token = localStorage.getItem('token')
+    if (!token) {
+      toast.error("Please log in to save items")
+      return
+    }
+    setAuthToken(token)
+
     const itemId = `${item.title}-${item.link}`
     const newLikedItems = new Set(likedItems)
     
@@ -49,17 +56,62 @@ export default function ComponentTabs({ components }: ComponentsTabProps) {
     setLikedItems(newLikedItems)
     
     try {
-      await api.post("/closet/add", {
-        name: item.title,
-        category: components[activeTab].name,
-        price: item.price,
-        link: item.link,
-        thumbnail: item.thumbnail
-      })
-      toast.success("Item saved to your closet!")
+      if (likedItems.has(itemId)) {
+        // Find the item ID first
+        const response = await api.get('/wishlist/')
+        const items = response.data
+        const wishlistItem = items.find((i: any) => i.link === item.link)
+        
+        if (wishlistItem) {
+          await api.delete('/wishlist/delete', {
+            params: {
+              link: item.link,
+              category: components[activeTab].name
+            }
+          })
+          toast.success('Removed from wishlist')
+        }
+      } else {
+        // Create FormData for the request
+        const formData = new FormData()
+        formData.append('name', item.title)
+        formData.append('category', components[activeTab].name)
+        formData.append('price', item.price)
+        formData.append('link', item.link)
+        
+        // Convert thumbnail URL to File object
+        try {
+          const thumbnailResponse = await fetch(item.thumbnail)
+          if (!thumbnailResponse.ok) throw new Error('Failed to fetch thumbnail')
+          const thumbnailBlob = await thumbnailResponse.blob()
+          const thumbnailFile = new File([thumbnailBlob], 'thumbnail.jpg', { type: 'image/jpeg' })
+          formData.append('thumbnail', thumbnailFile)
+
+          const response = await fetch('/api/wishlist/add', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          })
+
+          if (!response.ok) {
+            throw new Error('Failed to add to wishlist')
+          }
+
+          toast.success('Added to wishlist')
+        } catch (error) {
+          console.error('Error processing thumbnail:', error)
+          toast.error('Failed to process image')
+          setLikedItems(likedItems)
+          return
+        }
+      }
     } catch (error) {
       console.error("Failed to save item:", error)
       toast.error("Failed to save item")
+      // Revert the liked state if the operation failed
+      setLikedItems(likedItems)
     }
   }
 
