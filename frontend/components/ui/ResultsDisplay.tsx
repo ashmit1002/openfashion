@@ -5,7 +5,7 @@ import { ExternalLink, Heart, MessageCircle, Send, Bookmark } from "lucide-react
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
-import api, { setAuthToken } from "@/lib/api"
+import api, { setAuthToken, trackInteraction } from "@/lib/api"
 
 interface ClothingItem {
   thumbnail: string
@@ -106,6 +106,7 @@ export default function ResultsDisplay({ results }: ResultsDisplayProps) {
         }
       }
       setLiked(!liked)
+      await trackInteraction('wishlist', user.id, { link: item.link })
     } catch (error) {
       console.error('Error toggling wishlist:', error)
       toast.error('Failed to update wishlist')

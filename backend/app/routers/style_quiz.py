@@ -1,8 +1,9 @@
+import logging
+import openai
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from models.user_models import StyleQuiz, StyleQuizResponse, UserStyleProfile, UserInteraction, SubmitQuizResponseRequest
 from uuid import UUID, uuid4
-import openai
 from bson import ObjectId
 from app.database import style_profiles_collection, user_interactions_collection, style_quizzes_collection
 from app.auth.dependencies import get_current_user_id
@@ -12,6 +13,8 @@ from openai import AsyncOpenAI
 from app.config.settings import settings
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 # Initialize OpenAI client with API key from settings
 client = AsyncOpenAI(
@@ -96,13 +99,13 @@ async def complete_style_quiz(user_id: str = Depends(get_current_user_id)):
     style_profile = await generate_initial_style_profile(quiz)
     
     # Log the GPT output
-    print("\n=== Style Quiz GPT Output ===")
-    print(f"User ID: {user_id}")
-    print("\nQuiz Responses:")
+    logger.info("=== Style Quiz GPT Output ===")
+    logger.info("User ID: %s", user_id)
+    logger.info("Quiz Responses:")
     for response in quiz["responses"]:
-        print(f"Q: {response['question_id']}")
-        print(f"A: {response['response']}")
-    print("\nGenerated Style Profile:")
+        logger.info("Q: %s", response['question_id'])
+        logger.info("A: %s", response['response'])
+    logger.info("Generated Style Profile:")
     # Convert UUID to string for JSON serialization in logging
     profile_dict = style_profile.dict()
     profile_dict['id'] = str(profile_dict['id'])
@@ -113,8 +116,8 @@ async def complete_style_quiz(user_id: str = Depends(get_current_user_id)):
     if 'updated_at' in profile_dict and isinstance(profile_dict['updated_at'], datetime):
         profile_dict['updated_at'] = profile_dict['updated_at'].isoformat()
 
-    print(json.dumps(profile_dict, indent=2))
-    print("===========================\n")
+    logger.info(json.dumps(profile_dict, indent=2))
+    logger.info("===========================")
     
     # Save style profile
     # Convert UUID id to string before saving to MongoDB
@@ -289,8 +292,8 @@ async def generate_initial_style_profile(quiz: dict) -> UserStyleProfile:
         )
         
         # Add debug logging
-        print("OpenAI Response:", response)
-        print("Response output_text:", response.output_text)
+        logger.info("OpenAI Response: %s", response)
+        logger.info("Response output_text: %s", response.output_text)
         
         try:
             profile_data = json.loads(response.output_text)
@@ -304,15 +307,15 @@ async def generate_initial_style_profile(quiz: dict) -> UserStyleProfile:
                 style_preferences=profile_data["style_preferences"]
             )
         except json.JSONDecodeError as e:
-            print("JSON Decode Error:", str(e))
-            print("Raw response:", response.output_text)
+            logger.error("JSON Decode Error: %s", str(e))
+            logger.error("Raw response: %s", response.output_text)
             raise HTTPException(status_code=500, detail=f"Invalid JSON response from GPT: {str(e)}")
         except ValueError as e:
-            print("Validation Error:", str(e))
-            print("Profile data:", profile_data)
+            logger.error("Validation Error: %s", str(e))
+            logger.error("Profile data: %s", profile_data)
             raise HTTPException(status_code=500, detail=f"Invalid profile data structure: {str(e)}")
     except Exception as e:
-        print("OpenAI API Error:", str(e))
+        logger.error("OpenAI API Error: %s", str(e))
         raise HTTPException(status_code=500, detail=f"Error calling OpenAI API: {str(e)}")
 
 async def update_style_profile(interaction: UserInteraction) -> UserStyleProfile:
@@ -354,8 +357,8 @@ async def update_style_profile(interaction: UserInteraction) -> UserStyleProfile
         )
         
         # Add debug logging
-        print("OpenAI Response:", response)
-        print("Response output_text:", response.output_text)
+        logger.info("OpenAI Response: %s", response)
+        logger.info("Response output_text: %s", response.output_text)
         
         try:
             updated_data = json.loads(response.output_text)
@@ -378,15 +381,15 @@ async def update_style_profile(interaction: UserInteraction) -> UserStyleProfile
             
             return updated_profile
         except json.JSONDecodeError as e:
-            print("JSON Decode Error:", str(e))
-            print("Raw response:", response.output_text)
+            logger.error("JSON Decode Error: %s", str(e))
+            logger.error("Raw response: %s", response.output_text)
             raise HTTPException(status_code=500, detail=f"Invalid JSON response from GPT: {str(e)}")
         except ValueError as e:
-            print("Validation Error:", str(e))
-            print("Updated data:", updated_data)
+            logger.error("Validation Error: %s", str(e))
+            logger.error("Updated data: %s", updated_data)
             raise HTTPException(status_code=500, detail=f"Invalid profile data structure: {str(e)}")
     except Exception as e:
-        print("OpenAI API Error:", str(e))
+        logger.error("OpenAI API Error: %s", str(e))
         raise HTTPException(status_code=500, detail=f"Error calling OpenAI API: {str(e)}")
 
 async def generate_recommendations(profile: dict, recent_interactions: List[dict]):
@@ -428,8 +431,8 @@ async def generate_recommendations(profile: dict, recent_interactions: List[dict
         )
         
         # Add debug logging
-        print("OpenAI Response:", response)
-        print("Response output_text:", response.output_text)
+        logger.info("OpenAI Response: %s", response)
+        logger.info("Response output_text: %s", response.output_text)
         
         try:
             recommendations = json.loads(response.output_text)
@@ -439,15 +442,15 @@ async def generate_recommendations(profile: dict, recent_interactions: List[dict
                 
             return recommendations
         except json.JSONDecodeError as e:
-            print("JSON Decode Error:", str(e))
-            print("Raw response:", response.output_text)
+            logger.error("JSON Decode Error: %s", str(e))
+            logger.error("Raw response: %s", response.output_text)
             raise HTTPException(status_code=500, detail=f"Invalid JSON response from GPT: {str(e)}")
         except ValueError as e:
-            print("Validation Error:", str(e))
-            print("Recommendations data:", recommendations)
+            logger.error("Validation Error: %s", str(e))
+            logger.error("Recommendations data: %s", recommendations)
             raise HTTPException(status_code=500, detail=f"Invalid recommendations structure: {str(e)}")
     except Exception as e:
-        print("OpenAI API Error:", str(e))
+        logger.error("OpenAI API Error: %s", str(e))
         raise HTTPException(status_code=500, detail=f"Error calling OpenAI API: {str(e)}")
 
 @router.get("/generate-search-queries")
@@ -491,8 +494,8 @@ Please provide the search queries in a JSON array of strings.
         )
 
         # Add debug logging
-        print("OpenAI Search Query Response:", response)
-        print("Search Query Response output_text:", response.output_text)
+        logger.info("OpenAI Search Query Response: %s", response)
+        logger.info("Search Query Response output_text: %s", response.output_text)
 
         try:
             search_queries = json.loads(response.output_text)
@@ -502,13 +505,14 @@ Please provide the search queries in a JSON array of strings.
             return {"search_queries": search_queries}
 
         except json.JSONDecodeError as e:
-            print("JSON Decode Error:", str(e))
-            print("Raw response:", response.output_text)
+            logger.error("JSON Decode Error: %s", str(e))
+            logger.error("Raw response: %s", response.output_text)
             raise HTTPException(status_code=500, detail=f"Invalid JSON response from GPT: {str(e)}")
         except ValueError as e:
-            print("Validation Error:", str(e))
-            print("Response data:", search_queries)
+            logger.error("Validation Error: %s", str(e))
+            logger.error("Response data: %s", search_queries)
             raise HTTPException(status_code=500, detail=f"Invalid response data structure: {str(e)}")
     except Exception as e:
-        print("OpenAI API Error:", str(e))
-        raise HTTPException(status_code=500, detail=f"Error calling OpenAI API: {str(e)}") 
+        logger.error("OpenAI API Error: %s", str(e))
+        raise HTTPException(status_code=500, detail=f"Error calling OpenAI API: {str(e)}")
+

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { trackInteraction } from '@/lib/api';
 
 interface WishlistButtonProps {
   item: {
@@ -77,7 +78,7 @@ export function WishlistButton({ item, className = '' }: WishlistButtonProps) {
         
         const items = await response.json();
         const wishlistItem = items.find((i: any) => i.link === item.link);
-        
+
         if (wishlistItem) {
           await fetch('/api/wishlist/delete', {
             method: 'DELETE',
@@ -91,6 +92,7 @@ export function WishlistButton({ item, className = '' }: WishlistButtonProps) {
           });
           setIsInWishlist(false);
           toast.success('Removed from wishlist');
+          await trackInteraction('wishlist_remove', user.id, { link: item.link });
         }
       } else {
         // Create FormData for the request

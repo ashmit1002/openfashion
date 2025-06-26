@@ -12,3 +12,6 @@ pymongo
 fastapi
 uvicorn
 python-multipart
+openai
+python-jose
+passlib[bcrypt]
