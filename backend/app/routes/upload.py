@@ -63,3 +63,4 @@ async def upload_thumbnail(file: UploadFile = File(...)):
         f.write(await file.read())
 
     return {"url": f"http://localhost:8000/uploads/{filename}"}
+

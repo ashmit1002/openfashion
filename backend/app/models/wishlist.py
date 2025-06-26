@@ -9,8 +9,8 @@ class WishlistItem(BaseModel):
     price: float
     link: str
     thumbnail: str
-    source: Optional[str] = None  # Where the item was found (e.g. "Pinterest", "User Upload")
+    source: Optional[str] = None  # e.g. "Pinterest", "User Upload"
     created_at: datetime = Field(default_factory=datetime.utcnow)
     likes: int = 0
-    saves: int = 0  # How many other users saved this to their wishlist
-    tags: list[str] = []  # For better searchability and recommendations 
+    saves: int = 0  # How many other users saved this item
+    tags: list[str] = []  # For better searchability and recommendations
