@@ -1,14 +1,15 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import List, Optional
 from datetime import datetime
 
 class WishlistItem(BaseModel):
     user_id: str
     title: str
     category: str
-    price: float
+    price: str  # Changed from float to str to handle price strings like "$10.0"
     link: str
     thumbnail: str
+      
     source: Optional[str] = None  # e.g. "Pinterest", "User Upload"
     created_at: datetime = Field(default_factory=datetime.utcnow)
     likes: int = 0
@@ -17,4 +18,3 @@ class WishlistItem(BaseModel):
 
     class Config:
         from_attributes = True
-

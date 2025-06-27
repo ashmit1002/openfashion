@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
 
-
 class ClosetItem(BaseModel):
     user_id: str
     name: str
@@ -13,4 +12,3 @@ class ClosetItem(BaseModel):
 
     class Config:
         from_attributes = True
-

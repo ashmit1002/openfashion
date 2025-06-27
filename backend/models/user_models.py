@@ -35,4 +35,3 @@ class StyleQuiz(BaseModel):
 class SubmitQuizResponseRequest(BaseModel):
     question_id: str
     response: Union[str, List[str]]
-

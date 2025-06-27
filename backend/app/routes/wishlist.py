@@ -1,12 +1,21 @@
 # routes/wishlist.py
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Form, UploadFile, File
 from typing import List, Optional
 from datetime import datetime
 from app.database import wishlist_collection
 from app.auth.dependencies import get_current_user_id
 from app.models.wishlist import WishlistItem
+from bson import ObjectId
+import os
+import time
 
 router = APIRouter(tags=["Wishlist"])
+
+def convert_objectid(item):
+    """Convert MongoDB ObjectId to string in the response"""
+    if "_id" in item:
+        item["_id"] = str(item["_id"])
+    return item
 
 @router.get("/", response_model=List[WishlistItem])
 async def get_wishlist(
@@ -32,42 +41,54 @@ async def get_user_wishlist(
     ).skip(skip).limit(limit))
     return items
 
-@router.post("/add", response_model=WishlistItem)
+@router.post("/add")
 async def add_to_wishlist(
-    item: WishlistItem,
+    name: str = Form(...),
+    category: str = Form(...),
+    price: str = Form(...),
+    link: str = Form(...),
+    thumbnail: UploadFile = File(...),
     user_id: str = Depends(get_current_user_id)
 ):
     """Add an item to wishlist with proper validation"""
-    # Ensure the user_id in the request matches the authenticated user
-    if item.user_id != user_id:
-        raise HTTPException(status_code=403, detail="Cannot add items for another user")
-        
+    os.makedirs("uploads", exist_ok=True)
+    filename = f"{int(time.time())}_{thumbnail.filename}"
+    path = f"uploads/{filename}"
+    with open(path, "wb") as f:
+        f.write(await thumbnail.read())
+
+    item = {
+        "user_id": user_id,
+        "title": name,
+        "category": category,
+        "price": price,
+        "link": link,
+        "thumbnail": f"http://localhost:8000/{path}",
+        "source": "User Save",
+        "tags": [category]
+    }
+    
     existing = wishlist_collection.find_one({
         "user_id": user_id,
-        "link": item.link
+        "link": link
     })
     if existing:
         raise HTTPException(status_code=400, detail="Item already in wishlist")
     
-    item_dict = item.model_dump()
-    item_dict["created_at"] = datetime.utcnow()
-    result = wishlist_collection.insert_one(item_dict)
-    return item_dict
+    result = wishlist_collection.insert_one(item)
+    return {"message": "Item added to wishlist", "item": convert_objectid(item)}
 
-@router.delete("/{item_id}")
-async def remove_from_wishlist(
-    item_id: str,
-    user_id: str = Depends(get_current_user_id)
-):
-    """Remove an item from wishlist"""
-    from bson import ObjectId
+@router.delete("/delete")
+def delete_wishlist_item(link: str, category: str, user_id: str = Depends(get_current_user_id)):
+    """Remove an item from wishlist by link and category"""
     result = wishlist_collection.delete_one({
-        "_id": ObjectId(item_id),
-        "user_id": user_id
+        "user_id": user_id,
+        "link": link,
+        "category": category
     })
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Item not found")
-    return {"message": "Item removed from wishlist"}
+    return {"message": "Item deleted"}
 
 @router.post("/{item_id}/like")
 async def like_wishlist_item(
@@ -75,7 +96,6 @@ async def like_wishlist_item(
     user_id: str = Depends(get_current_user_id)
 ):
     """Like another user's wishlist item"""
-    from bson import ObjectId
     result = wishlist_collection.update_one(
         {"_id": ObjectId(item_id)},
         {"$inc": {"likes": 1}}
