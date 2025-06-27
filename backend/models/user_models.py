@@ -17,7 +17,7 @@ class UserInteraction(BaseModel):
     user_id: str
     interaction_type: str  # 'like', 'upload', 'wishlist', 'view'
     item_id: UUID
-    metadata: dict = {}  # Additional data about the interaction
+    metadata: dict = {}
 
 class StyleQuizResponse(BaseModel):
     id: UUID = Field(default_factory=uuid4)
@@ -32,7 +32,7 @@ class StyleQuiz(BaseModel):
     completed: bool = False
     archived: bool = False
 
-# New model for the request body of the submit response endpoint
 class SubmitQuizResponseRequest(BaseModel):
     question_id: str
-    response: Union[str, List[str]] 
+    response: Union[str, List[str]]
+

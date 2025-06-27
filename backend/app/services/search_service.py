@@ -1,7 +1,10 @@
+import logging
 from serpapi import GoogleSearch
 from urllib.parse import quote
 from app.config.settings import settings
 from app.services.similar_service import generate_fashion_search_query
+
+logger = logging.getLogger(__name__)
 
 SERP_API_KEY = settings.SERP_API_KEY
 
@@ -35,7 +38,7 @@ def get_clothing_from_google_search(image_url: str, category_hint: str = "", col
         results = search.get_dict()
         visual_matches = results.get("visual_matches", [])[:5]
 
-        print(f"SerpAPI result for {image_url}:", visual_matches[:3])
+        logger.info("SerpAPI result for %s: %s", image_url, visual_matches[:3])
 
         matches = []
         for m in visual_matches:
@@ -57,5 +60,5 @@ def get_clothing_from_google_search(image_url: str, category_hint: str = "", col
             } for m in visual_matches
         ]
     except Exception as e:
-        print(f"Search failed for {image_url}: {e}")
+        logger.error("Search failed for %s: %s", image_url, e)
         return [{"title": "Search failed", "link": "", "price": "N/A", "thumbnail": ""}]

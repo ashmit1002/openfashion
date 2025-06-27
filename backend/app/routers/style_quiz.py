@@ -367,7 +367,7 @@ async def update_style_profile(interaction: UserInteraction) -> UserStyleProfile
                 raise ValueError("Missing required fields in updated data")
                 
             updated_profile = UserStyleProfile(
-                id=profile["_id"],
+                id=str(profile["_id"]),
                 user_id=interaction.user_id,
                 style_summary=updated_data["style_summary"],
                 style_preferences=updated_data["style_preferences"]
@@ -515,3 +515,4 @@ Please provide the search queries in a JSON array of strings.
     except Exception as e:
         logger.error("OpenAI API Error: %s", str(e))
         raise HTTPException(status_code=500, detail=f"Error calling OpenAI API: {str(e)}")
+
