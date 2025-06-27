@@ -8,7 +8,8 @@ OpenFashion is a full-stack fashion discovery platform consisting of a **FastAPI
 pip install -r backend/requirements.txt
 ```
 
-Set the required environment variables (see [`backend/app/config/settings.py`](backend/app/config/settings.py)) for settings such as `SECRET_KEY`, `MONGO_URI`, `S3_BUCKET_NAME`, `OPENAI_API_KEY` and other API keys.
+Copy `.env.example` in both the `backend` and `frontend` folders and fill in your API keys.
+These correspond to the variables defined in [`backend/app/config/settings.py`](backend/app/config/settings.py) and the Next.js app.
 
 Start the API server:
 
@@ -31,3 +32,12 @@ Navigate to <http://localhost:3000> to view the app.
 - **Image analysis** - analyze clothing images to generate search queries for similar items.
 - **Style quiz** - interactive quiz that builds a style profile and personalizes recommendations.
 - **Explore page** - browse recommended looks and save favorites.
+
+## Running Tests
+
+Install test dependencies and run `pytest`:
+
+```bash
+pip install mongomock pytest
+pytest
+```
