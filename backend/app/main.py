@@ -36,3 +36,4 @@ app.include_router(
 )  # Style Quiz & Recommendations
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
+

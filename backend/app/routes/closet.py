@@ -108,3 +108,4 @@ def get_user_closet(username: str):
         for category, items in grouped.items()
     ]
     return {"closet": component_groups}
+
