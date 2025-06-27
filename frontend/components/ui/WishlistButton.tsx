@@ -31,9 +31,21 @@ export function WishlistButton({ item, className = '' }: WishlistButtonProps) {
     if (!user) return;
     
     try {
-      const response = await fetch('/api/wishlist');
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      const response = await fetch('/api/wishlist/', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch wishlist');
+      }
+      
       const data = await response.json();
-      setIsInWishlist(data.some((wishlistItem: any) => wishlistItem.link === item.link));
+      setIsInWishlist(Array.isArray(data) && data.some((wishlistItem: any) => wishlistItem.link === item.link));
     } catch (error) {
       console.error('Error checking wishlist status:', error);
     }
@@ -46,34 +58,77 @@ export function WishlistButton({ item, className = '' }: WishlistButtonProps) {
     }
 
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please login to save items to your wishlist');
+        return;
+      }
+
       if (isInWishlist) {
-        const response = await fetch('/api/wishlist');
+        // Find the item ID first
+        const response = await fetch('/api/wishlist/', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch wishlist');
+        }
+        
         const items = await response.json();
         const wishlistItem = items.find((i: any) => i.link === item.link);
 
         if (wishlistItem) {
-          await fetch(`/api/wishlist/${wishlistItem._id}`, {
+          await fetch('/api/wishlist/delete', {
             method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              link: item.link,
+              category: item.category
+            })
           });
           setIsInWishlist(false);
           toast.success('Removed from wishlist');
           await trackInteraction('wishlist_remove', user.id, { link: item.link });
         }
       } else {
-        await fetch('/api/wishlist/add', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...item,
-            user_id: user.id,
-            source: 'User Save'
-          }),
-        });
-        setIsInWishlist(true);
-        toast.success('Added to wishlist');
-        await trackInteraction('wishlist_add', user.id, { link: item.link });
+        // Create FormData for the request
+        const formData = new FormData();
+        formData.append('name', item.title);
+        formData.append('category', item.category);
+        formData.append('price', item.price.toString());
+        formData.append('link', item.link);
+        
+        // Convert thumbnail URL to File object
+        try {
+          const thumbnailResponse = await fetch(item.thumbnail);
+          if (!thumbnailResponse.ok) throw new Error('Failed to fetch thumbnail');
+          const thumbnailBlob = await thumbnailResponse.blob();
+          const thumbnailFile = new File([thumbnailBlob], 'thumbnail.jpg', { type: 'image/jpeg' });
+          formData.append('thumbnail', thumbnailFile);
+
+          const response = await fetch('/api/wishlist/add', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to add to wishlist');
+          }
+
+          setIsInWishlist(true);
+          toast.success('Added to wishlist');
+        } catch (error) {
+          console.error('Error processing thumbnail:', error);
+          toast.error('Failed to process image');
+          return;
+        }
       }
     } catch (error) {
       console.error('Error toggling wishlist:', error);

@@ -22,3 +22,6 @@ lambda_build/
 **/site-packages/
 **/*.dylib
 **/*.so
+
+# Secret keys
+openfashion-458418-5aabbba38bcd.json

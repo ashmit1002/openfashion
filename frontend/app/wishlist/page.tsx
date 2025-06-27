@@ -7,6 +7,8 @@ import { Card } from '@/components/ui/card';
 import Link from 'next/link';
 import Image from 'next/image';
 import { WishlistButton } from '@/components/ui/WishlistButton';
+import { Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface WishlistItem {
   _id: string;
@@ -43,6 +45,39 @@ export default function WishlistPage() {
     }
   };
 
+  const removeFromWishlist = async (itemId: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+    setAuthToken(token);
+    
+    try {
+      // First verify the item exists in our state
+      const itemToRemove = items.find(item => item._id === itemId);
+      if (!itemToRemove) {
+        toast.error('Item not found');
+        return;
+      }
+
+      // Make the API call to delete using the item's link and category
+      await api.delete('/wishlist/delete', {
+        params: {
+          link: itemToRemove.link,
+          category: itemToRemove.category
+        }
+      });
+      
+      // Refresh the wishlist items from the server
+      await fetchWishlistItems();
+      toast.success('Item removed from wishlist');
+    } catch (error) {
+      console.error('Error removing from wishlist:', error);
+      toast.error('Failed to remove item from wishlist');
+    }
+  };
+
   useEffect(() => {
     fetchWishlistItems();
   }, []);
@@ -73,10 +108,13 @@ export default function WishlistPage() {
                   fill
                   className="object-cover"
                 />
-                <WishlistButton
-                  item={item}
-                  className="absolute top-2 right-2 bg-white shadow-md"
-                />
+                <button
+                  onClick={() => removeFromWishlist(item._id)}
+                  className="absolute top-2 right-2 p-2 rounded-full bg-white shadow-md hover:bg-gray-100 transition-colors"
+                  aria-label="Remove from wishlist"
+                >
+                  <Trash2 className="w-5 h-5 text-gray-600" />
+                </button>
               </div>
               <div className="p-4">
                 <h3 className="font-semibold truncate">{item.title}</h3>
