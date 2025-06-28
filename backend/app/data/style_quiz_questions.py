@@ -89,13 +89,19 @@ STYLE_QUIZ_QUESTIONS = [
             "Leather / faux leather",
             "Technical / performance fabrics"
         ],
-        "type": "multiple_choice"
+        "type": "multi_select"
     },
     {
         "id": "comfort_vs_style",
         "question": "On a scale of 1–5, how much do you prioritize comfort over trendiness?",
-        "type": "rating",    # 1=All comfort, 5=All trend
-        "scale": [1, 2, 3, 4, 5]
+        "type": "multiple_choice",    # 1=All comfort, 5=All trend
+        "options": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+        ]
     },
     {
         "id": "price_sensitivity",

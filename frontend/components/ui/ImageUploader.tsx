@@ -8,12 +8,15 @@ interface AnalysisResult {
   components: Array<{
     name: string
     dominant_color: string
+    original_image_url: string
+    bg_removed_url: string
     clothing_items: Array<{
       title: string
       thumbnail: string
       price: string
       link: string
     }>
+    similar_queries?: string[]
   }>
 }
 

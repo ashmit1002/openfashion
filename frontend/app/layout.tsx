@@ -11,6 +11,7 @@ import { Toaster } from "sonner"
 import { NavLinks } from "@/components/NavLinks"
 import { UserAccountButton } from "@/components/UserAccountButton"
 import MobileNav from "@/components/MobileNav"
+import StyleChatbot from "@/components/ui/StyleChatbot"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -69,6 +70,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </footer>
           <Toaster position="top-right" />
           <MobileNav />
+          <StyleChatbot />
         </AuthProvider>
       </body>
     </html>

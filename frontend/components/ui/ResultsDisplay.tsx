@@ -5,7 +5,7 @@ import { ExternalLink, Heart, MessageCircle, Send, Bookmark } from "lucide-react
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/AuthContext"
-import api, { setAuthToken, trackInteraction } from "@/lib/api"
+import api, { setAuthToken, trackInteraction, fetchSerpApiShoppingResults } from "@/lib/api"
 
 interface ClothingItem {
   thumbnail: string
@@ -19,6 +19,8 @@ interface Component {
   name: string
   dominant_color: string
   clothing_items: ClothingItem[]
+  similar_items?: any[]
+  similar_queries?: string[]
 }
 
 interface ResultsData {
@@ -34,12 +36,57 @@ export default function ResultsDisplay({ results }: ResultsDisplayProps) {
   const [liked, setLiked] = useState(false)
   const [saved, setSaved] = useState(false)
   const { user } = useAuth()
+  const [similarItemsByComponent, setSimilarItemsByComponent] = useState<{ [idx: number]: any[][] }>({})
+  const [loadingSimilar, setLoadingSimilar] = useState<{ [idx: number]: boolean }>({})
 
   useEffect(() => {
     // Check if item is in wishlist on component mount
     console.log('Component mounted, user:', user)
     checkWishlistStatus()
   }, [user])
+
+  useEffect(() => {
+    if (!results) return;
+    // For each component, fetch shopping results for each similar query
+    console.log('[SerpAPI] Starting fetch for similar items', results.components);
+    console.log('[SerpAPI] Full results data:', results);
+    
+    results.components.forEach((component, idx) => {
+      console.log(`[SerpAPI] Component ${idx} "${component.name}":`, component);
+      console.log(`[SerpAPI] Component ${idx} similar_queries:`, component.similar_queries);
+      
+      if (!component.similar_queries || component.similar_queries.length === 0) {
+        console.log(`[SerpAPI] No similar queries for component "${component.name}"`);
+        return;
+      }
+      console.log(`[SerpAPI] Fetching similar items for component "${component.name}" with queries:`, component.similar_queries);
+      setLoadingSimilar(prev => ({ ...prev, [idx]: true }))
+      Promise.all(
+        component.similar_queries.map(async (query: string) => {
+          try {
+            console.log(`[SerpAPI] Fetching shopping results for query: ${query}`);
+            const results = await fetchSerpApiShoppingResults(query, 4);
+            console.log(`[SerpAPI] Results for "${query}":`, results);
+            console.log(`[SerpAPI] Number of results for "${query}":`, results.length);
+            return results;
+          } catch (err: any) {
+            console.error(`[SerpAPI] Error fetching results for "${query}":`, err);
+            console.error(`[SerpAPI] Error details:`, err.response?.data || err.message);
+            return [];
+          }
+        })
+      ).then((allResults) => {
+        console.log(`[SerpAPI] All results for component "${component.name}":`, allResults);
+        console.log(`[SerpAPI] Total result arrays for component "${component.name}":`, allResults.length);
+        console.log(`[SerpAPI] Non-empty result arrays:`, allResults.filter(arr => arr.length > 0).length);
+        setSimilarItemsByComponent(prev => ({ ...prev, [idx]: allResults }))
+        setLoadingSimilar(prev => ({ ...prev, [idx]: false }))
+      }).catch((error) => {
+        console.error(`[SerpAPI] Error in Promise.all for component "${component.name}":`, error);
+        setLoadingSimilar(prev => ({ ...prev, [idx]: false }))
+      })
+    })
+  }, [results])
 
   const checkWishlistStatus = async () => {
     console.log('Checking wishlist status, user:', user)
@@ -106,7 +153,7 @@ export default function ResultsDisplay({ results }: ResultsDisplayProps) {
         }
       }
       setLiked(!liked)
-      await trackInteraction('wishlist', user.id, { link: item.link })
+      await trackInteraction('wishlist', user.email, { link: item.link })
     } catch (error) {
       console.error('Error toggling wishlist:', error)
       toast.error('Failed to update wishlist')
@@ -218,6 +265,46 @@ export default function ResultsDisplay({ results }: ResultsDisplayProps) {
                     </a>
                   </div>
                 </div>
+              </div>
+            )}
+            {/* Similar Items Section */}
+            {component.similar_queries && component.similar_queries.length > 0 && (
+              <div className="p-4 pt-0">
+                <h4 className="font-semibold text-sm mb-2">Similar Items</h4>
+                {loadingSimilar[index] ? (
+                  <div className="text-xs text-gray-500 mb-2">Loading similar items...</div>
+                ) : similarItemsByComponent[index] && similarItemsByComponent[index].length > 0 ? (
+                  <div className="space-y-3">
+                    {component.similar_queries.map((query: string, qIdx: number) => (
+                      <div key={query}>
+                        <div className="text-xs font-semibold text-gray-700 mb-1">{query}</div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {similarItemsByComponent[index][qIdx]?.map((item: any, idx2: number) => (
+                            <a
+                              key={item.link || item.title || idx2}
+                              href={item.link || '#'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block bg-gray-50 rounded border border-gray-200 p-2 hover:shadow"
+                            >
+                              {item.thumbnail && (
+                                <img
+                                  src={item.thumbnail}
+                                  alt={item.title}
+                                  className="w-full h-24 object-cover rounded mb-1"
+                                />
+                              )}
+                              <div className="text-xs font-medium line-clamp-2 mb-1">{item.title}</div>
+                              <div className="text-xs text-green-700">{item.price}</div>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-500">No similar items found.</div>
+                )}
               </div>
             )}
           </div>

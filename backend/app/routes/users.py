@@ -1,10 +1,15 @@
-from fastapi import APIRouter, HTTPException, Depends, Body
+from fastapi import APIRouter, HTTPException, Depends, Body, Query
 from app.database import users_collection
 from app.auth.dependencies import get_current_user_id
 from app.models.user import User, UserCreate
 from typing import List, Optional
+from app.services.search_service import get_shopping_results_from_serpapi, get_google_shopping_light_results
+from app.services.chatbot_service import StyleChatbot
 
 router = APIRouter(tags=["Users"])
+
+# Initialize the style chatbot
+style_chatbot = StyleChatbot()
 
 # Utility to convert MongoDB user to User
 def user_to_model(user) -> User:
@@ -75,4 +80,84 @@ def search_users(query: str):
             {"display_name": {"$regex": query, "$options": "i"}}
         ]
     })
-    return [user_to_model(u) for u in users] 
+    return [user_to_model(u) for u in users]
+
+@router.get("/shopping/search")
+def shopping_search(query: str = Query(..., description="Shopping search query"), num_results: int = Query(10, ge=1, le=20)):
+    """
+    Proxy endpoint for Google Shopping search via SerpAPI.
+    Returns a list of shopping results for the given query.
+    """
+    print(f"[Backend] Shopping search request received - Query: '{query}', Num results: {num_results}")
+    try:
+        results = get_shopping_results_from_serpapi(query, num_results)
+        print(f"[Backend] Shopping search completed - Returning {len(results)} results")
+        return results
+    except Exception as e:
+        print(f"[Backend] Shopping search error: {e}")
+        raise HTTPException(status_code=500, detail=f"Shopping search failed: {str(e)}")
+
+@router.get("/shopping/light/search")
+def shopping_light_search(query: str = Query(..., description="Shopping search query"), num_results: int = Query(10, ge=1, le=20)):
+    """
+    Proxy endpoint for Google Shopping Light search via SerpAPI.
+    Returns a list of shopping results for the given query using the faster Google Shopping Light engine.
+    """
+    print(f"[Backend] Google Shopping Light search request received - Query: '{query}', Num results: {num_results}")
+    try:
+        results = get_google_shopping_light_results(query, num_results)
+        print(f"[Backend] Google Shopping Light search completed - Returning {len(results)} results")
+        return results
+    except Exception as e:
+        print(f"[Backend] Google Shopping Light search error: {e}")
+        raise HTTPException(status_code=500, detail=f"Google Shopping Light search failed: {str(e)}")
+
+@router.post("/chat/style")
+async def chat_with_style_bot(
+    message: str = Body(..., embed=True),
+    context: Optional[dict] = Body({}, embed=True),
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Chat with the style bot for personalized fashion advice and style profiling.
+    """
+    try:
+        response = await style_chatbot.process_message(
+            user_id=user_id,
+            message=message,
+            context=context
+        )
+        return {
+            "response": response["message"],
+            "suggestions": response.get("suggestions", []),
+            "style_insights": response.get("style_insights", {}),
+            "next_questions": response.get("next_questions", [])
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
+
+@router.get("/chat/style/start")
+async def start_style_chat(user_id: str = Depends(get_current_user_id)):
+    """
+    Start a new style chat session with initial questions.
+    """
+    try:
+        initial_response = await style_chatbot.start_conversation(user_id=user_id)
+        return {
+            "message": initial_response["message"],
+            "suggestions": initial_response.get("suggestions", []),
+            "next_questions": initial_response.get("next_questions", [])
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start chat: {str(e)}")
+
+@router.get("/chat/style/profile")
+async def get_style_chat_profile(user_id: str = Depends(get_current_user_id)):
+    """
+    Get the current style profile insights from chat interactions.
+    """
+    try:
+        profile = await style_chatbot.get_user_style_profile(user_id=user_id)
+        return profile
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get profile: {str(e)}") 

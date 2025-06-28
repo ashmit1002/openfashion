@@ -5,6 +5,8 @@ import time
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Depends
 from app.services.vision_service import analyze_image
 from app.auth.dependencies import get_current_user_id
+from app.services.similar_service import generate_similar_item_queries
+from app.services.search_service import get_shopping_results_from_serpapi
 
 # Temporary in-memory closet store
 user_closets = {}
@@ -38,6 +40,22 @@ async def upload_image(
         result = analyze_image(temp_path, filename)
         logger.info("\u2705 analyze_image() returned successfully")
 
+        # For each component, generate similar item queries based on reverse image search metadata
+        for component in result.get("components", []):
+            # Use the clothing_items from reverse image search for better query generation
+            clothing_items = component.get("clothing_items", [])
+            queries = await generate_similar_item_queries(
+                component_name=component["name"],
+                color=component.get("dominant_color", ""),
+                clothing_items=clothing_items,
+                user_id=user_id  # Pass user_id for personalized queries
+            )
+            component["similar_queries"] = queries[:5]  # Limit to 5 queries per component
+            logger.info(f"Generated similar_queries for component '{component['name']}' based on metadata: {component['similar_queries']}")
+            # Keep clothing_items for reverse image search results display
+            # Don't remove them - they're needed for the frontend MasonryGrid
+
+        logger.info(f"Final result components: {[c['name'] for c in result.get('components', [])]}")
         return result
 
     except Exception as e:

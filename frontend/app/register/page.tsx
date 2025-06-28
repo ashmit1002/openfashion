@@ -35,10 +35,8 @@ export default function RegisterPage() {
 
     try {
       await register(email, password, username)
-      setSuccess("Registration successful! Redirecting to home...")
-      setTimeout(() => {
-        router.push("/")
-      }, 2000)
+      setSuccess("Registration successful! Redirecting to style quiz...")
+      router.push("/preferences")
     } catch (err: any) {
       if (err.response?.data?.detail) {
         setError(Array.isArray(err.response.data.detail) 

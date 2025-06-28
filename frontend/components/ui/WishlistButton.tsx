@@ -92,7 +92,7 @@ export function WishlistButton({ item, className = '' }: WishlistButtonProps) {
           });
           setIsInWishlist(false);
           toast.success('Removed from wishlist');
-          await trackInteraction('wishlist_remove', user.id, { link: item.link });
+          await trackInteraction('wishlist_remove', user.email, { link: item.link });
         }
       } else {
         // Create FormData for the request

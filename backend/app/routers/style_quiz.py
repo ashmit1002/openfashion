@@ -139,6 +139,11 @@ async def track_user_interaction(
     
     # Save interaction
     interaction_dict = interaction.dict()
+    # Convert UUID fields to strings for MongoDB
+    if isinstance(interaction_dict.get('id'), UUID):
+        interaction_dict['id'] = str(interaction_dict['id'])
+    if isinstance(interaction_dict.get('item_id'), UUID):
+        interaction_dict['item_id'] = str(interaction_dict['item_id'])
     user_interactions_collection.insert_one(interaction_dict)
     
     # Update style profile
@@ -335,17 +340,31 @@ async def update_style_profile(interaction: UserInteraction) -> UserStyleProfile
         f"Type: {i['interaction_type']}, Item: {i['item_id']}, Metadata: {i['metadata']}"
         for i in recent_interactions
     ])
-    
-    prompt = f"""Based on the user's current style profile and recent interactions, update their preferences:
-    
-    Current Profile:
-    {profile['style_summary']}
-    
-    Recent Interactions:
-    {interactions_text}
-    
-    Please provide an updated style profile in the same JSON format as before.
-    """
+
+    prompt = (
+        "Based on the user's current style profile and recent interactions, update their preferences.\n\n"
+        "IMPORTANT INSTRUCTIONS:\n"
+        "- Respond ONLY with a valid JSON object.\n"
+        "- The JSON MUST have exactly these two fields at the top level:\n"
+        "  - \"style_summary\": a string summarizing the user's style.\n"
+        "  - \"style_preferences\": an array of objects, each with:\n"
+        "    - \"category\": a string (the style category)\n"
+        "    - \"confidence_score\": a float between 0 and 1\n"
+        "- Do NOT include any other fields.\n"
+        "- Do NOT wrap your response in markdown, code blocks, or backticks.\n"
+        "- Do NOT add any explanation or commentary.\n\n"
+        "Example of the required format:\n"
+        "{\n"
+        "  \"style_summary\": \"You prefer minimalist and streetwear styles with a focus on comfort and neutral colors.\",\n"
+        "  \"style_preferences\": [\n"
+        "    { \"category\": \"minimalist\", \"confidence_score\": 0.9 },\n"
+        "    { \"category\": \"streetwear\", \"confidence_score\": 0.8 }\n"
+        "  ]\n"
+        "}\n\n"
+        "Now, using the information below, generate the updated style profile in the format above:\n\n"
+        f"Current Profile:\n{profile['style_summary']}\n\n"
+        f"Recent Interactions:\n{interactions_text}"
+    )
     
     try:
         response = await client.responses.create(
@@ -367,8 +386,8 @@ async def update_style_profile(interaction: UserInteraction) -> UserStyleProfile
                 raise ValueError("Missing required fields in updated data")
                 
             updated_profile = UserStyleProfile(
-                id=profile["_id"],
-                user_id=interaction.user_id,
+                id=str(profile["_id"]),
+                user_id=str(interaction.user_id),
                 style_summary=updated_data["style_summary"],
                 style_preferences=updated_data["style_preferences"]
             )

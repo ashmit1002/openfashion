@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { Search } from "lucide-react"
+import { Search, MessageCircle } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import UserSearchDropdown from "@/components/UserSearchDropdown"
 
@@ -15,6 +15,12 @@ export function NavLinks() {
       <Link href="/closet" className="px-3 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors">My Closet</Link>
       <Link href="/wishlist" className="px-3 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors">Wishlist</Link>
       <Link href="/explore" className="px-3 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors">Explore</Link>
+      {user && (
+        <Link href="/chat" className="px-3 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors flex items-center space-x-1">
+          <MessageCircle className="w-4 h-4" />
+          <span>Style Chat</span>
+        </Link>
+      )}
       </div>
       {/* Center: Search bar */}
       <div className="flex-1 flex justify-center">

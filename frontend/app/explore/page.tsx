@@ -5,7 +5,7 @@ import { Heart, Bookmark, Share2 } from "lucide-react";
 import { useInView } from "react-intersection-observer";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { trackInteraction } from "@/lib/api";
+import { trackInteraction, fetchSerpApiShoppingResults } from "@/lib/api";
 // We will add more imports later as needed, e.g., for displaying search results
 
 // Define interfaces for Google Custom Search API response
@@ -42,27 +42,20 @@ interface SearchQueriesResponse {
 
 export default function ExplorePage() {
   const [searchQueries, setSearchQueries] = useState<string[]>([]);
-  const [searchResults, setSearchResults] = useState<SearchItem[]>([]);
+  const [groupedResults, setGroupedResults] = useState<{ [query: string]: SearchItem[] }>({});
+  const [pageByQuery, setPageByQuery] = useState<{ [query: string]: number }>({});
   const [loading, setLoading] = useState(true);
-  const [searching, setSearching] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
   const [likedItems, setLikedItems] = useState<Set<string>>(new Set());
   const [savedItems, setSavedItems] = useState<Set<string>>(new Set());
   const { user } = useAuth();
-  const RESULTS_PER_PAGE = 20;
+  const RESULTS_PER_PAGE = 10;
+  const [shoppingResults, setShoppingResults] = useState<{ [query: string]: any[] }>({});
+  const [shoppingLoading, setShoppingLoading] = useState(false);
 
-  // Intersection Observer for infinite scroll
-  const { ref: loadMoreRef, inView } = useInView({
-    threshold: 0,
-    triggerOnce: false,
-  });
-
-  useEffect(() => {
-    if (inView && !searching && searchQueries.length > 0) {
-      setCurrentPage(prev => prev + 1);
-    }
-  }, [inView, searching, searchQueries]);
+  // Infinite scroll observer
+  const { ref: loadMoreRef, inView } = useInView({ threshold: 0, triggerOnce: false });
 
   useEffect(() => {
     const fetchSearchQueries = async () => {
@@ -74,20 +67,21 @@ export default function ExplorePage() {
           setLoading(false);
           return;
         }
-
         const response = await fetch("/api/style/generate-search-queries", {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         });
-
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.detail || `Error fetching search queries: ${response.status}`);
         }
-
         const data: SearchQueriesResponse = await response.json();
         setSearchQueries(data.search_queries);
+        // Initialize page for each query
+        const initialPages: { [query: string]: number } = {};
+        data.search_queries.forEach(q => { initialPages[q] = 1; });
+        setPageByQuery(initialPages);
       } catch (err: any) {
         console.error("Error fetching search queries:", err);
         setError(err.message);
@@ -95,51 +89,105 @@ export default function ExplorePage() {
         setLoading(false);
       }
     };
-
     fetchSearchQueries();
   }, []);
 
+  // Fetch results for all queries (first page or when queries change)
   useEffect(() => {
-    const performSearch = async () => {
-      if (searchQueries.length === 0 || searching) return;
-
-      setSearching(true);
-      setError(null);
-
+    const fetchAllResults = async () => {
+      if (searchQueries.length === 0) return;
+      setLoading(true);
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_SEARCH_API_KEY;
       const cx = process.env.NEXT_PUBLIC_GOOGLE_SEARCH_CX;
-
       if (!apiKey || !cx) {
         setError("Google Custom Search API key or CX is not configured.");
-        setSearching(false);
+        setLoading(false);
         return;
       }
-
-      try {
-        const query = searchQueries[0];
-        const startIndex = currentPage * RESULTS_PER_PAGE + 1;
-
-        const apiUrl = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(query)}&start=${startIndex}`;
-
-        const response = await fetch(apiUrl);
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error?.message || `Error fetching search results: ${response.status}`);
+      const results: { [query: string]: SearchItem[] } = {};
+      for (const query of searchQueries) {
+        try {
+          const apiUrl = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(query)}&start=1`;
+          const response = await fetch(apiUrl);
+          if (!response.ok) {
+            results[query] = [];
+            continue;
+          }
+          const data = await response.json();
+          results[query] = data.items || [];
+        } catch (err) {
+          results[query] = [];
         }
-
-        const data = await response.json();
-        setSearchResults(prevResults => [...prevResults, ...(data.items || [])]);
-      } catch (err: any) {
-        console.error("Error fetching search results:", err);
-        setError(err.message);
-      } finally {
-        setSearching(false);
       }
+      setGroupedResults(results);
+      setLoading(false);
     };
+    fetchAllResults();
+  }, [searchQueries]);
 
-    performSearch();
-  }, [searchQueries, currentPage]);
+  // Infinite scroll: fetch more results for each query when inView
+  useEffect(() => {
+    if (!inView || loading || searchQueries.length === 0) return;
+    const fetchMore = async () => {
+      setLoadingMore(true);
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_SEARCH_API_KEY;
+      const cx = process.env.NEXT_PUBLIC_GOOGLE_SEARCH_CX;
+      if (!apiKey || !cx) {
+        setError("Google Custom Search API key or CX is not configured.");
+        setLoadingMore(false);
+        return;
+      }
+      const newResults = { ...groupedResults };
+      const newPages = { ...pageByQuery };
+      for (const query of searchQueries) {
+        const nextPage = (pageByQuery[query] || 1) + 1;
+        const startIndex = (nextPage - 1) * RESULTS_PER_PAGE + 1;
+        try {
+          const apiUrl = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(query)}&start=${startIndex}`;
+          const response = await fetch(apiUrl);
+          if (!response.ok) continue;
+          const data = await response.json();
+          if (data.items && data.items.length > 0) {
+            newResults[query] = [...(newResults[query] || []), ...data.items];
+            newPages[query] = nextPage;
+          }
+        } catch (err) {
+          // ignore
+        }
+      }
+      setGroupedResults(newResults);
+      setPageByQuery(newPages);
+      setLoadingMore(false);
+    };
+    fetchMore();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inView]);
+
+  useEffect(() => {
+    // Fetch shopping results from SerpAPI for each query
+    const fetchShopping = async () => {
+      if (searchQueries.length === 0) return;
+      setShoppingLoading(true);
+      const results: { [query: string]: any[] } = {};
+      console.log('[SerpAPI] Starting fetch for shopping results', searchQueries);
+      await Promise.all(
+        searchQueries.map(async (query) => {
+          try {
+            console.log(`[SerpAPI] Fetching shopping results for query: ${query}`);
+            results[query] = await fetchSerpApiShoppingResults(query);
+            console.log(`[SerpAPI] Results for "${query}":`, results[query]);
+          } catch (err) {
+            console.error(`[SerpAPI] Error fetching results for "${query}":`, err);
+            results[query] = [];
+          }
+        })
+      );
+      setShoppingResults(results);
+      setShoppingLoading(false);
+      console.log('[SerpAPI] Final shoppingResults state:', results);
+    };
+    fetchShopping();
+  }, [searchQueries]);
 
   const handleLike = async (itemId: string) => {
     setLikedItems(prev => {
@@ -152,7 +200,7 @@ export default function ExplorePage() {
       return newSet;
     });
     if (user) {
-      await trackInteraction("like", user.id, { link: itemId });
+      await trackInteraction("like", user.email, { link: itemId });
     }
   };
 
@@ -167,7 +215,7 @@ export default function ExplorePage() {
       return newSet;
     });
     if (user) {
-      await trackInteraction("wishlist", user.id, { link: itemId });
+      await trackInteraction("wishlist", user.email, { link: itemId });
     }
   };
 
@@ -196,75 +244,89 @@ export default function ExplorePage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Explore Styles</h1>
-      {searchResults.length > 0 ? (
-        <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
-          {searchResults.map((item, index) => (
-            <motion.div
-              key={item.link}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="break-inside-avoid relative group"
-            >
-              <div className="relative rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
-                {item.pagemap?.cse_image?.[0]?.src && (
-                  <div className="relative aspect-[3/4]">
+      {Object.entries(groupedResults).map(([query, items]) => (
+        <div key={query} className="mb-10">
+          <h2 className="text-xl font-semibold mb-2">{query}</h2>
+          {/* Google Shopping Results */}
+          {shoppingLoading ? (
+            <div className="mb-4 text-gray-500">Loading top products from Google Shopping...</div>
+          ) : shoppingResults[query] && shoppingResults[query].length > 0 ? (
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold mb-2">Top Products from Google Shopping</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {shoppingResults[query]
+                  .filter((product: any) => product.title || product.link)
+                  .map((product: any, idx: number) => (
+                    <a
+                      key={product.link || product.title || idx}
+                      href={product.link || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-white rounded shadow p-4 block hover:shadow-lg transition-shadow border border-yellow-200"
+                    >
+                      {product.thumbnail && (
+                        <img
+                          src={product.thumbnail}
+                          alt={product.title}
+                          className="w-full h-48 object-cover mb-2 rounded"
+                        />
+                      )}
+                      <h4 className="font-medium text-base mb-1 line-clamp-2">{product.title}</h4>
+                      <div className="text-sm font-semibold text-green-700 mb-1">{product.price}</div>
+                      <div className="text-xs text-gray-500 mb-2">{product.source}</div>
+                    </a>
+                  ))}
+              </div>
+            </div>
+          ) : null}
+          {/* Web Results */}
+          {items.length === 0 ? (
+            <p className="text-gray-500">No products found for this search.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {items.map(item => (
+                <a
+                  key={item.link}
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white rounded shadow p-4 block hover:shadow-lg transition-shadow"
+                >
+                  {item.pagemap?.cse_image?.[0]?.src && (
                     <img
                       src={item.pagemap.cse_image[0].src}
                       alt={item.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-48 object-cover mb-2 rounded"
                     />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <div className="flex space-x-4">
-                        <button
-                          onClick={() => handleLike(item.link)}
-                          className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors"
-                        >
-                          <Heart
-                            className={`h-5 w-5 ${
-                              likedItems.has(item.link)
-                                ? "text-meta-pink fill-meta-pink"
-                                : "text-gray-600"
-                            }`}
-                          />
-                        </button>
-                        <button
-                          onClick={() => handleSave(item.link)}
-                          className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors"
-                        >
-                          <Bookmark
-                            className={`h-5 w-5 ${
-                              savedItems.has(item.link)
-                                ? "text-meta-pink fill-meta-pink"
-                                : "text-gray-600"
-                            }`}
-                          />
-                        </button>
-                        <button className="p-2 rounded-full bg-white/90 hover:bg-white transition-colors">
-                          <Share2 className="h-5 w-5 text-gray-600" />
-                        </button>
-                      </div>
-                    </div>
+                  )}
+                  <h3 className="font-medium text-base mb-1 line-clamp-2">{item.title}</h3>
+                  <p className="text-xs text-gray-500 line-clamp-2 mb-2">{item.snippet}</p>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={e => { e.preventDefault(); handleLike(item.link); }}
+                      className="p-1 rounded-full bg-gray-100 hover:bg-gray-200"
+                    >
+                      <Heart className={`h-5 w-5 ${likedItems.has(item.link) ? "text-meta-pink fill-meta-pink" : "text-gray-600"}`} />
+                    </button>
+                    <button
+                      onClick={e => { e.preventDefault(); handleSave(item.link); }}
+                      className="p-1 rounded-full bg-gray-100 hover:bg-gray-200"
+                    >
+                      <Bookmark className={`h-5 w-5 ${savedItems.has(item.link) ? "text-meta-pink fill-meta-pink" : "text-gray-600"}`} />
+                    </button>
+                    <button className="p-1 rounded-full bg-gray-100 hover:bg-gray-200">
+                      <Share2 className="h-5 w-5 text-gray-600" />
+                    </button>
                   </div>
-                )}
-                <div className="p-4">
-                  <h3 className="text-sm font-medium mb-1 line-clamp-2">{item.title}</h3>
-                  <p className="text-xs text-gray-500 line-clamp-2">{item.snippet}</p>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+                </a>
+              ))}
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow p-6 text-center">
-          <h2 className="text-xl font-semibold mb-4">No recommendations yet</h2>
-          <p className="text-gray-600">Complete the style quiz to get personalized fashion inspiration.</p>
-        </div>
-      )}
-
+      ))}
       {/* Infinite scroll trigger */}
       <div ref={loadMoreRef} className="h-10 mt-4">
-        {searching && (
+        {loadingMore && (
           <div className="text-center">
             <p className="text-gray-500">Loading more inspiration...</p>
           </div>
