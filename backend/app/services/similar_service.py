@@ -1,9 +1,12 @@
+import logging
 from openai import OpenAI
 from app.config.settings import settings
 import time
 from serpapi import GoogleSearch
 from urllib.parse import quote
 import re, json
+
+logger = logging.getLogger(__name__)
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 SERP_API_KEY = settings.SERP_API_KEY
@@ -23,7 +26,7 @@ def get_initial_search_results(image_url: str, category: str) -> list:
         results = search.get_dict()
         return results.get("visual_matches", [])[:3]  # Get top 3 matches for context
     except Exception as e:
-        print(f"❌ Failed to get initial search results: {e}")
+        logger.error("Failed to get initial search results: %s", e)
         return []
 
 def generate_fashion_search_query(title: str, category: str, context: str = "", image_url: str = "") -> str:
@@ -94,23 +97,20 @@ Generate a search query that will find visually similar items:"""
         # Extract and clean the generated query
         query = response.choices[0].message.content.strip().strip('"').strip("'")
         
-        print(f"\n🤖 GPT-4 Vision Analysis:")
-        print(f"Original Image: {image_url}")
-        print(f"Analyzed Thumbnail: {thumbnail_url}")
-        print(f"Generated Query: {query}")
+        logger.info("GPT-4 Vision Analysis:\nOriginal Image: %s\nAnalyzed Thumbnail: %s\nGenerated Query: %s", image_url, thumbnail_url, query)
         
         # Ensure we have a valid query
         if not query or len(query) < 3:
             fallback = f"{category} {title}"
-            print(f"⚠️ Using fallback query: {fallback}")
+            logger.warning("Using fallback query: %s", fallback)
             return fallback
             
         return query
 
     except Exception as e:
-        print(f"❌ Failed to generate query for: {title}, Error: {e}")
+        logger.error("Failed to generate query for %s: %s", title, e)
         fallback = f"{category} {title}"
-        print(f"⚠️ Using fallback query: {fallback}")
+        logger.warning("Using fallback query: %s", fallback)
         return fallback
 
 def hex_to_color_name(hex_color: str) -> str:

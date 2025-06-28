@@ -65,6 +65,7 @@ export function WishlistButton({ item, className = '' }: WishlistButtonProps) {
       }
 
       if (isInWishlist) {
+
         // Find the item ID first
         const response = await fetch('/api/wishlist/', {
           headers: {
@@ -95,6 +96,7 @@ export function WishlistButton({ item, className = '' }: WishlistButtonProps) {
           await trackInteraction('wishlist_remove', user.email, { link: item.link });
         }
       } else {
+
         // Create FormData for the request
         const formData = new FormData();
         formData.append('name', item.title);
