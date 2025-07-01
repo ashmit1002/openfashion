@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
+from datetime import datetime
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -30,6 +31,30 @@ class User(BaseModel):
     followers: List[str] = []
     following: List[str] = []
     needs_quiz: bool = False
+    # Subscription fields
+    subscription_status: str = "free"  # "free", "premium"
+    subscription_tier: Optional[str] = None  # "basic", "pro", "enterprise"
+    subscription_end_date: Optional[datetime] = None
+    weekly_uploads_used: int = 0
+    weekly_uploads_reset_date: Optional[datetime] = None
+    stripe_customer_id: Optional[str] = None
+    stripe_subscription_id: Optional[str] = None
+    pending_cancellation: Optional[bool] = False
 
     class Config:
         from_attributes = True
+
+class SubscriptionTier(BaseModel):
+    id: str
+    name: str
+    price: float
+    currency: str = "usd"
+    interval: str = "month"  # "month", "year"
+    features: List[str] = []
+    upload_limit: Optional[int] = None  # None for unlimited
+    description: str = ""
+
+class CreateCheckoutSession(BaseModel):
+    tier_id: str
+    success_url: str
+    cancel_url: str

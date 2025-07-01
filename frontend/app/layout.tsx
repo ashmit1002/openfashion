@@ -12,6 +12,7 @@ import { NavLinks } from "@/components/NavLinks"
 import { UserAccountButton } from "@/components/UserAccountButton"
 import MobileNav from "@/components/MobileNav"
 import StyleChatbot from "@/components/ui/StyleChatbot"
+import PremiumBanner from '@/components/PremiumBanner'
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -23,8 +24,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" href="/favicon-32x32.png" type="image/x-icon" />
+      </head>
       <body className={`${inter.className} antialiased min-h-screen bg-white`}>
         <AuthProvider>
+          <PremiumBanner />
           <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm z-40 border-b border-gray-100">
             <div className="max-w-7xl mx-auto px-4">
               <div className="flex items-center justify-between h-16">

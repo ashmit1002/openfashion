@@ -19,6 +19,14 @@ def register(user: UserCreate):
     user_dict["password"] = hash_password(user.password)  # Hash the password
     user_dict["followers"] = []
     user_dict["following"] = []
+    # Initialize subscription fields for new users
+    user_dict["subscription_status"] = "free"
+    user_dict["subscription_tier"] = None
+    user_dict["subscription_end_date"] = None
+    user_dict["weekly_uploads_used"] = 0
+    user_dict["weekly_uploads_reset_date"] = None
+    user_dict["stripe_customer_id"] = None
+    
     result = users_collection.insert_one(user_dict)
     user_dict["id"] = str(result.inserted_id)
     
@@ -78,7 +86,14 @@ def get_current_user(user_id: str = Depends(get_current_user_id)):
         avatar_url=user.get("avatar_url"),
         bio=user.get("bio"),
         followers=user.get("followers", []),
-        following=user.get("following", [])
+        following=user.get("following", []),
+        subscription_status=user.get("subscription_status", "free"),
+        subscription_tier=user.get("subscription_tier"),
+        subscription_end_date=user.get("subscription_end_date"),
+        weekly_uploads_used=user.get("weekly_uploads_used", 0),
+        weekly_uploads_reset_date=user.get("weekly_uploads_reset_date"),
+        stripe_customer_id=user.get("stripe_customer_id"),
+        pending_cancellation=user.get("pending_cancellation", False)
     )
     
     # Add needs_quiz flag to the response

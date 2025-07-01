@@ -31,4 +31,9 @@ class Settings:
     # Google Search
     GOOGLE_SEARCH_API_KEY = os.getenv("GOOGLE_SEARCH_API_KEY")
 
+    # Stripe - Using the provided test keys
+    STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "sk_test_51ReqBlQPE7rsnsEKExBnXkXEU0odfo5o8Cu3P7iEI2moXV6pJ8ZCzsCrjqUDPT3AJH1ND7ohmR3Z4bIDwmWQxVCR005eRnlKwV")
+    STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY", "pk_test_51ReqBlQPE7rsnsEKd0m3Eh0GkbKR1ncgck2dibedRS72JW76AOac18krNY9wcxj9LXs2h5MbLJmJRALbONlTrWkH00ydE46MtG")
+    STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+
 settings = Settings()

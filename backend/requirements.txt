@@ -13,3 +13,4 @@ python-multipart
 openai
 python-jose
 passlib[bcrypt]
+stripe

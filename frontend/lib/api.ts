@@ -4,9 +4,12 @@ import { v4 as uuidv4 } from "uuid"
 
 const api = axios.create({
   baseURL: "http://127.0.0.1:8000/api",
+  headers: {
+    'Content-Type': 'application/json',
+  },
 })
 
-// Add request interceptor to automatically include auth token
+// Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
@@ -20,16 +23,14 @@ api.interceptors.request.use(
   }
 )
 
-// Add response interceptor to handle auth errors
+// Response interceptor to handle auth errors
 api.interceptors.response.use(
-  (response) => {
-    return response
-  },
+  (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       // Clear invalid token
       localStorage.removeItem('token')
-      // You could also redirect to login here if needed
+      window.location.href = '/login'
     }
     return Promise.reject(error)
   }
@@ -45,19 +46,17 @@ export const setAuthToken = (token: string | null) => {
 
 export const trackInteraction = async (
   interactionType: string,
-  userId: string,
-  metadata: Record<string, any> = {}
+  itemId: string,
+  metadata: any = {}
 ) => {
   try {
-    await api.post("/style/interactions/track", {
-      id: uuidv4(),
-      user_id: userId,
+    await api.post("/users/interactions", {
       interaction_type: interactionType,
-      item_id: uuidv4(),
+      item_id: itemId,
       metadata,
     })
-  } catch (err) {
-    console.error("Failed to track interaction:", err)
+  } catch (error) {
+    console.error("Failed to track interaction:", error)
   }
 }
 
@@ -80,12 +79,12 @@ export async function fetchSerpApiShoppingResults(query: string, numResults: num
  * @param numResults Number of results to fetch (default 10).
  * @returns An array of shopping light results from the backend.
  */
-export const fetchGoogleShoppingLightResults = async (query: string, numResults: number = 10) => {
+export const fetchGoogleShoppingLightResults = async (query: string) => {
   try {
-    const response = await api.get(`/users/shopping/light/search?query=${encodeURIComponent(query)}&num_results=${numResults}`)
+    const response = await api.get(`/search/google-shopping-light?query=${query}`)
     return response.data
   } catch (error) {
-    console.error('Error fetching Google Shopping Light results:', error)
+    console.error('Error fetching Google Shopping results:', error)
     return []
   }
 }
@@ -135,6 +134,80 @@ export const getStyleChatProfile = async () => {
     console.error('Error getting style chat profile:', error)
     throw error
   }
+}
+
+// Auth endpoints
+export const auth = {
+  login: (email: string, password: string) => 
+    api.post('/auth/login', { email, password }),
+  register: (email: string, password: string, username: string) => 
+    api.post('/auth/register', { email, password, username }),
+  me: () => api.get('/auth/me'),
+}
+
+// Upload endpoints
+export const upload = {
+  analyze: (formData: FormData) => 
+    api.post('/upload/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+  thumbnail: (formData: FormData) => 
+    api.post('/upload/upload-thumbnail', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+}
+
+// Closet endpoints
+export const closet = {
+  getAll: () => api.get('/closet/'),
+  addItem: (item: any) => api.post('/closet/', item),
+  deleteItem: (itemId: string) => api.delete(`/closet/${itemId}`),
+  getUserCloset: (username: string) => api.get(`/closet/user/${username}`),
+}
+
+// Wishlist endpoints
+export const wishlist = {
+  getAll: () => api.get('/wishlist/'),
+  addItem: (item: any) => api.post('/wishlist/', item),
+  deleteItem: (itemId: string) => api.delete(`/wishlist/${itemId}`),
+}
+
+// User endpoints
+export const users = {
+  getByUsername: (username: string) => api.get(`/users/user/${username}`),
+  updateProfile: (data: any) => api.put('/users/user/profile', data),
+  follow: (username: string) => api.post(`/users/user/follow/${username}`),
+  unfollow: (username: string) => api.post(`/users/user/unfollow/${username}`),
+  search: (query: string) => api.get(`/users/users/search?query=${query}`),
+}
+
+// Subscription endpoints
+export const subscription = {
+  getTiers: () => api.get('/subscription/tiers'),
+  createCustomer: () => api.post('/subscription/create-customer'),
+  createSubscription: (data: { price_id: string; customer_id: string }) => 
+    api.post('/subscription/create-subscription', data),
+  createCheckoutSession: (data: any) => api.post('/subscription/create-checkout-session', data),
+  cancelSubscription: (subscriptionId?: string) => {
+    if (subscriptionId) {
+      return api.post('/subscription/cancel-subscription', { subscription_id: subscriptionId })
+    } else {
+      return api.post('/subscription/cancel-subscription')
+    }
+  },
+  checkUploadLimit: () => api.get('/subscription/upload-limit'),
+}
+
+// Style quiz endpoints
+export const styleQuiz = {
+  getQuestions: () => api.get('/style/quiz/questions'),
+  submitResponse: (data: any) => api.post('/style/quiz/response', data),
+  getRecommendations: () => api.get('/style/recommendations'),
+}
+
+// Search endpoints
+export const search = {
+  googleShopping: (query: string) => api.get(`/search/google-shopping?query=${query}`),
 }
 
 export default api

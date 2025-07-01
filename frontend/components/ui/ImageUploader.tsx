@@ -1,7 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Upload, Camera, X } from "lucide-react"
+import { Upload, Camera, X, Crown, AlertCircle } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
+import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 
 interface AnalysisResult {
   annotated_image_base64: string
@@ -29,13 +32,14 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
   const [dragActive, setDragActive] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const { user, refreshUser } = useAuth()
 
   const handleUpload = async (file: File) => {
     if (!file) return
 
     const token = localStorage.getItem("token")
     if (!token) {
-      alert("You must be logged in to upload.")
+      toast.error("You must be logged in to upload.")
       return
     }
 
@@ -54,14 +58,36 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
       })
 
       if (!response.ok) {
-        throw new Error("Upload failed")
+        const errorData = await response.json()
+        if (response.status === 403) {
+          // Upload limit reached
+          toast.error("Upload limit reached!", {
+            description: "Upgrade to Premium for unlimited uploads.",
+            action: {
+              label: "Upgrade",
+              onClick: () => window.location.href = "/premium"
+            }
+          })
+          return
+        }
+        throw new Error(errorData.detail?.message || "Upload failed")
       }
 
       const data: AnalysisResult = await response.json()
       onAnalysisComplete(data)
+      await refreshUser?.()
+      
+      // Show success message with upload count for free users
+      if (user && user.subscription_status === 'free') {
+        toast.success("Upload successful!", {
+          description: `${user.weekly_uploads_used + 1}/3 uploads used this week.`,
+        })
+      } else {
+        toast.success("Upload successful!")
+      }
     } catch (error) {
       console.error("Error uploading image:", error)
-      alert("Error uploading image. Please try again.")
+      toast.error("Error uploading image. Please try again.")
     } finally {
       setIsUploading(false)
     }
@@ -111,8 +137,35 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
     setPreviewUrl(null)
   }
 
+  const isPremium = user?.subscription_status === 'premium'
+  const uploadsRemaining = user ? 3 - user.weekly_uploads_used : 0
+
   return (
     <div className="meta-card animate-slide-up">
+      {/* Upload Limit Warning for Free Users */}
+      {!isPremium && user && (
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-yellow-800">
+                Free Plan Upload Limit
+              </h3>
+              <p className="text-sm text-yellow-700 mt-1">
+                You have {uploadsRemaining} uploads remaining this week. 
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-yellow-800 underline ml-1"
+                  onClick={() => window.location.href = "/premium"}
+                >
+                  Upgrade to Premium
+                </Button> for unlimited uploads.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} onDragEnter={handleDrag} className="w-full">
         {!previewUrl ? (
           <div

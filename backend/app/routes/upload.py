@@ -7,6 +7,7 @@ from app.services.vision_service import analyze_image
 from app.auth.dependencies import get_current_user_id
 from app.services.similar_service import generate_similar_item_queries
 from app.services.search_service import get_shopping_results_from_serpapi
+from app.services.subscription_service import check_upload_limit, increment_upload_count
 
 # Temporary in-memory closet store
 user_closets = {}
@@ -22,6 +23,18 @@ async def upload_image(
     user_id: str = Depends(get_current_user_id)
 ):
     logger.info("\ud83d\udcf8 Upload endpoint hit. is_owner=%s, user_id=%s", is_owner, user_id)
+    
+    # Check upload limits
+    upload_check = check_upload_limit(user_id)
+    if not upload_check['can_upload']:
+        raise HTTPException(
+            status_code=403, 
+            detail={
+                "message": upload_check['reason'],
+                "uploads_used": upload_check.get('uploads_used', 0),
+                "uploads_limit": upload_check.get('uploads_limit', 0)
+            }
+        )
     
     if not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Invalid file type")
@@ -56,6 +69,10 @@ async def upload_image(
             # Don't remove them - they're needed for the frontend MasonryGrid
 
         logger.info(f"Final result components: {[c['name'] for c in result.get('components', [])]}")
+        
+        # Increment upload count for free users
+        increment_upload_count(user_id)
+        
         return result
 
     except Exception as e:

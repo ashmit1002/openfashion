@@ -13,14 +13,23 @@ interface User {
   bio?: string;
   followers: string[];
   following: string[];
+  subscription_status: string;
+  subscription_tier?: string;
+  subscription_end_date?: string;
+  weekly_uploads_used: number;
+  weekly_uploads_reset_date?: string;
+  stripe_customer_id?: string;
+  stripe_subscription_id?: string;
+  pending_cancellation?: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
-  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
   register: (email: string, password: string, username: string) => Promise<void>;
+  logout: () => Promise<void>;
+  loading: boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,91 +38,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-      setAuthToken(token);
-      const response = await api.get('/auth/me');
-      if (response.status === 200) {
+  const refreshUser = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        setAuthToken(token);
+        const response = await api.get('/auth/me');
+        console.log('refreshUser', response.data);
         setUser(response.data);
-      } else {
-        setUser(null);
+      } catch (error) {
+        console.error('Error refreshing user:', error);
         localStorage.removeItem('token');
-        setAuthToken(null);
+        setUser(null);
       }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      setUser(null);
-      localStorage.removeItem('token');
-      setAuthToken(null);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
-  const login = async (email: string, password: string) => {
-    try {
-      const response = await api.post('/auth/login', { email, password });
-      const { access_token } = response.data;
-      localStorage.setItem('token', access_token);
-      setAuthToken(access_token);
+  useEffect(() => {
+    refreshUser();
+  }, []);
 
-      // Now fetch user info
-      const meRes = await api.get('/auth/me');
-      if (meRes.status === 200) {
-        setUser(meRes.data);
-      } else {
-        throw new Error('Failed to fetch user info');
-      }
-    } catch (error) {
-      console.error('Login failed:', error);
-      localStorage.removeItem('token');
-      setAuthToken(null);
-      setUser(null);
-      throw error;
-    }
+  const login = async (email: string, password: string) => {
+    const response = await api.post('/auth/login', { email, password });
+    const { access_token } = response.data;
+    localStorage.setItem('token', access_token);
+    setAuthToken(access_token);
+    await refreshUser();
+  };
+
+  const register = async (email: string, password: string, username: string) => {
+    const response = await api.post('/auth/register', { email, password, username });
+    const { access_token } = response.data;
+    localStorage.setItem('token', access_token);
+    setAuthToken(access_token);
+    await refreshUser();
   };
 
   const logout = async () => {
     localStorage.removeItem('token');
-    setAuthToken(null);
     setUser(null);
   };
 
-  const register = async (email: string, password: string, username: string) => {
-    try {
-      const response = await api.post('/auth/register', { email, password, username });
-      const { access_token } = response.data;
-      localStorage.setItem('token', access_token);
-      setAuthToken(access_token);
-
-      // Now fetch user info
-      const meRes = await api.get('/auth/me');
-      if (meRes.status === 200) {
-        setUser(meRes.data);
-      } else {
-        throw new Error('Failed to fetch user info');
-      }
-    } catch (error) {
-      console.error('Registration failed:', error);
-      localStorage.removeItem('token');
-      setAuthToken(null);
-      setUser(null);
-      throw error;
-    }
-  };
-
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

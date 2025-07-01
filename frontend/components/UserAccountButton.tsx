@@ -10,13 +10,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { User, Settings, LogOut, Book } from "lucide-react"
+import { User, Settings, LogOut, Book, Crown, Sparkles, XCircle } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { subscription } from "@/lib/api"
 
 export function UserAccountButton() {
-  const { user, logout } = useAuth()
+  const { user, logout, refreshUser } = useAuth()
   const router = useRouter()
 
   if (!user) {
@@ -34,6 +36,22 @@ export function UserAccountButton() {
     router.push('/')
   }
 
+  const isPremium = user.subscription_status === 'premium'
+
+  // TODO: Replace with actual subscription ID from user object or fetch from backend
+  const subscriptionId = user.stripe_subscription_id || null
+
+  const handleCancelPremium = async () => {
+    try {
+      await subscription.cancelSubscription()
+      toast.success('Your premium will remain active until the end of your billing period. You will be downgraded to Basic after that.')
+      await refreshUser?.()
+    } catch (error) {
+      toast.error('Failed to cancel subscription. Please try again or contact support.')
+    }
+  }
+
+  console.log('UserAccountButton user:', user)
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -55,11 +73,28 @@ export function UserAccountButton() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium">{user.display_name || user.username}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">{user.display_name || user.username}</p>
+              {isPremium ? (
+                <div className="flex items-center text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full">
+                  <Crown className="h-3 w-3 mr-1" />
+                  Premium
+                </div>
+              ) : (
+                <div className="flex items-center text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
+                  Free
+                </div>
+              )}
+            </div>
             <p className="text-xs text-gray-500">@{user.username}</p>
+            {!isPremium && (
+              <div className="text-xs text-gray-400 mt-1">
+                {user.weekly_uploads_used}/3 uploads this week
+              </div>
+            )}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -81,10 +116,40 @@ export function UserAccountButton() {
             <span>Preferences</span>
           </Link>
         </DropdownMenuItem>
+        {!isPremium && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/premium" className="cursor-pointer">
+                <Sparkles className="mr-2 h-4 w-4" />
+                <span>Get Premium</span>
+              </Link>
+            </DropdownMenuItem>
+          </>
+        )}
+        {user.subscription_status === 'premium' && (
+          <>
+            <DropdownMenuSeparator />
+            {user.pending_cancellation ? (
+              <DropdownMenuItem disabled className="cursor-not-allowed text-gray-400">
+                <XCircle className="mr-2 h-4 w-4" />
+                <span>Cancelled</span>
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                onClick={handleCancelPremium}
+                className="cursor-pointer text-red-600"
+              >
+                <XCircle className="mr-2 h-4 w-4" />
+                <span>Cancel Premium</span>
+              </DropdownMenuItem>
+            )}
+          </>
+        )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600">
+        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>Logout</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
