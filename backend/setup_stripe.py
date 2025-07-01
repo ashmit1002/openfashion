@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Initialize Stripe with your secret key
-stripe.api_key = "sk_test_51ReqBlQPE7rsnsEKExBnXkXEU0odfo5o8Cu3P7iEI2moXV6pJ8ZCzsCrjqUDPT3AJH1ND7ohmR3Z4bIDwmWQxVCR005eRnlKwV"
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 def create_products_and_prices():
     """Create products and prices in Stripe"""
