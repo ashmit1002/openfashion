@@ -63,7 +63,7 @@ export default function Home() {
         allQueries.map(async (query) => {
           try {
             console.log(`[Google Shopping] Fetching results for query: ${query}`)
-            results[query] = await fetchGoogleShoppingLightResults(query, 6)
+            results[query] = await fetchGoogleShoppingLightResults(query)
             console.log(`[Google Shopping] Results for "${query}":`, results[query])
           } catch (err) {
             console.error(`[Google Shopping] Error fetching results for "${query}":`, err)

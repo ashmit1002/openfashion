@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import api, { setAuthToken } from "../../lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Save, ArrowLeft } from "lucide-react"
 
-export default function EditItemPage() {
+function EditItemPageInner() {
   const router = useRouter()
   const params = useSearchParams()
 
@@ -81,5 +81,13 @@ export default function EditItemPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function EditItemPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <EditItemPageInner />
+    </Suspense>
   )
 }
