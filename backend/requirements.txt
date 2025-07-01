@@ -14,3 +14,5 @@ openai
 python-jose
 passlib[bcrypt]
 stripe
+email-validator
+pydantic[email]
