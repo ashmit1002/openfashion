@@ -67,7 +67,7 @@ export default function ExplorePage() {
           setLoading(false);
           return;
         }
-        const response = await fetch("/api/style/generate-search-queries", {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/style/generate-search-queries`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

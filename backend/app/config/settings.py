@@ -14,7 +14,8 @@ class Settings:
     MONGO_DB = os.getenv("MONGO_DB", "openfashion_db")
 
     # S3
-    S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "fashionwebapp")
+    S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "openfashion-user-closets")
+    WISHLIST_S3_BUCKET_NAME = os.getenv("WISHLIST_S3_BUCKET_NAME", "openfashion-user-wishlists")
 
     # remove.bg
     REMOVE_BG_API_KEY = os.getenv("REMOVE_BG_API_KEY")

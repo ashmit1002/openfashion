@@ -8,6 +8,7 @@ from app.models.wishlist import WishlistItem
 from bson import ObjectId
 import os
 import time
+from app.services.s3_service import upload_to_s3
 
 router = APIRouter(tags=["Wishlist"])
 
@@ -50,12 +51,12 @@ async def add_to_wishlist(
     thumbnail: UploadFile = File(...),
     user_id: str = Depends(get_current_user_id)
 ):
-    """Add an item to wishlist with proper validation"""
-    os.makedirs("uploads", exist_ok=True)
+    # Upload image to the wishlist S3 bucket
+    image_bytes = await thumbnail.read()
     filename = f"{int(time.time())}_{thumbnail.filename}"
-    path = f"uploads/{filename}"
-    with open(path, "wb") as f:
-        f.write(await thumbnail.read())
+    # Use a dedicated function or pass the bucket name for wishlists
+    from app.config.settings import settings
+    s3_url = upload_to_s3(image_bytes, filename, bucket_name=settings.WISHLIST_S3_BUCKET_NAME)
 
     item = {
         "user_id": user_id,
@@ -63,18 +64,16 @@ async def add_to_wishlist(
         "category": category,
         "price": price,
         "link": link,
-        "thumbnail": f"http://localhost:8000/{path}",
+        "thumbnail": s3_url,
         "source": "User Save",
         "tags": [category]
     }
-    
     existing = wishlist_collection.find_one({
         "user_id": user_id,
         "link": link
     })
     if existing:
         raise HTTPException(status_code=400, detail="Item already in wishlist")
-    
     result = wishlist_collection.insert_one(item)
     return {"message": "Item added to wishlist", "item": convert_objectid(item)}
 

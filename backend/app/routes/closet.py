@@ -4,6 +4,7 @@ from app.database import closets_collection, users_collection
 from app.models.closet import ClosetItem
 from bson import ObjectId
 import os, time
+from app.services.s3_service import upload_to_s3
 
 router = APIRouter(tags=["Closet"])
 
@@ -50,11 +51,10 @@ async def add_closet_item(
     thumbnail: UploadFile = File(...),
     user_id: str = Depends(get_current_user_id)
 ):
-    os.makedirs("uploads", exist_ok=True)
+    # Upload image to S3
+    image_bytes = await thumbnail.read()
     filename = f"{int(time.time())}_{thumbnail.filename}"
-    path = f"uploads/{filename}"
-    with open(path, "wb") as f:
-        f.write(await thumbnail.read())
+    s3_url = upload_to_s3(image_bytes, filename)
 
     item = {
         "user_id": user_id,
@@ -62,7 +62,7 @@ async def add_closet_item(
         "category": category,
         "price": price,
         "link": link,
-        "thumbnail": f"http://localhost:8000/{path}"
+        "thumbnail": s3_url
     }
     closets_collection.insert_one(item)
     return {"message": "Item added to closet", "item": convert_objectid(item)}
