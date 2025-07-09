@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ArrowLeft, Check, Crown, Sparkles, Zap, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
 import api from '@/lib/api'
-import StripePaymentForm from '@/components/ui/StripePaymentForm'
+import StripeEmbeddedCheckout from '@/components/ui/StripeEmbeddedCheckout'
 
 interface SubscriptionTier {
   id: string
@@ -169,12 +169,7 @@ export default function PremiumPage() {
             </p>
           </div>
 
-          <StripePaymentForm
-            priceId={selectedTier}
-            tierName={tier?.name || 'Premium'}
-            onSuccess={handlePaymentSuccess}
-            onCancel={handlePaymentCancel}
-          />
+          <StripeEmbeddedCheckout />
         </div>
       </div>
     )

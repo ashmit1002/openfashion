@@ -1,49 +1,32 @@
-import { useEffect, useRef } from "react";
+import { useCallback } from "react";
+import { loadStripe } from "@stripe/stripe-js";
+import {
+  EmbeddedCheckoutProvider,
+  EmbeddedCheckout
+} from "@stripe/react-stripe-js";
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 export default function StripeEmbeddedCheckout() {
-  const checkoutRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    let stripe: any;
-    let checkout: any;
-
-    const loadStripe = async () => {
-      if (!window.Stripe) {
-        const script = document.createElement("script");
-        script.src = "https://js.stripe.com/v3/";
-        script.async = true;
-        script.onload = initStripe;
-        document.body.appendChild(script);
-      } else {
-        initStripe();
+  const fetchClientSecret = useCallback(() => {
+    return fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/subscription/embedded-checkout-session`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        "Content-Type": "application/json"
       }
-    };
-
-    const initStripe = async () => {
-      stripe = window.Stripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
-
-      const fetchClientSecret = async () => {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/subscription/embedded-checkout-session`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${localStorage.getItem("token")}`,
-            "Content-Type": "application/json"
-          }
-        });
-        const { clientSecret } = await res.json();
-        return clientSecret;
-      };
-
-      checkout = await stripe.initEmbeddedCheckout({ fetchClientSecret });
-      checkout.mount("#checkout-element");
-    };
-
-    loadStripe();
-
-    return () => {
-      if (checkout) checkout.destroy();
-    };
+    })
+      .then((res) => res.json())
+      .then((data) => data.clientSecret);
   }, []);
 
-  return <div id="checkout-element" ref={checkoutRef} />;
+  const options = { fetchClientSecret };
+
+  return (
+    <div id="checkout">
+      <EmbeddedCheckoutProvider stripe={stripePromise} options={options}>
+        <EmbeddedCheckout />
+      </EmbeddedCheckoutProvider>
+    </div>
+  );
 } 
