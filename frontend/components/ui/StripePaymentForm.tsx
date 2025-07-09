@@ -38,12 +38,12 @@ export default function StripePaymentForm({ priceId, tierName, onSuccess, onCanc
       const script = document.createElement('script')
       script.src = 'https://js.stripe.com/v3/'
       script.onload = () => {
-        const stripeInstance = window.Stripe('pk_test_51ReqBlQPE7rsnsEKd0m3Eh0GkbKR1ncgck2dibedRS72JW76AOac18krNY9wcxj9LXs2h5MbLJmJRALbONlTrWkH00ydE46MtG')
+        const stripeInstance = window.Stripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
         setStripe(stripeInstance)
       }
       document.head.appendChild(script)
     } else {
-      const stripeInstance = window.Stripe('pk_test_51ReqBlQPE7rsnsEKd0m3Eh0GkbKR1ncgck2dibedRS72JW76AOac18krNY9wcxj9LXs2h5MbLJmJRALbONlTrWkH00ydE46MtG')
+      const stripeInstance = window.Stripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
       setStripe(stripeInstance)
     }
   }, [])
