@@ -150,3 +150,20 @@ def create_subscription_with_payment_method(
     ):
         client_secret = subscription.latest_invoice.payment_intent.client_secret
     return {"subscription_id": subscription.id, "client_secret": client_secret} 
+
+@router.post("/embedded-checkout-session")
+def create_embedded_checkout_session(user_id: str = Depends(get_current_user_id)):
+    import stripe
+    from app.config.settings import settings
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+    session = stripe.checkout.Session.create(
+        ui_mode='embedded',
+        line_items=[{
+            'price': 'price_1Rj5M1KiNuU2kNA8ZJAVJshX',
+            'quantity': 1,
+        }],
+        mode='subscription',
+        return_url='https://openfashion.vercel.app/premium/success?session_id={CHECKOUT_SESSION_ID}',
+        customer_email=user_id,  # user_id is email in your app
+    )
+    return {"clientSecret": session.client_secret} 

@@ -46,8 +46,8 @@ SUBSCRIPTION_TIERS = {
 # Mapping from tier names to actual Stripe price IDs
 TIER_TO_PRICE_MAPPING = {
     "basic": "price_basic_monthly",
-    "premium": "price_1ReqDjQPE7rsnsEKveAnnEc3",
-    "price_premium_monthly": "price_1ReqDjQPE7rsnsEKveAnnEc3",  # Handle old tier ID
+    "premium": "price_1Rj5M1KiNuU2kNA8ZJAVJshX",
+    "price_premium_monthly": "price_1Rj5M1KiNuU2kNA8ZJAVJshX",
     "price_basic_monthly": "price_basic_monthly"
 }
 
