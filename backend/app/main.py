@@ -20,7 +20,11 @@ app = FastAPI(title="OpenFashion API")
 # Allow all origins during development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://openfashion.vercel.app",
+        "https://openfashion-dy7ux5782-ashmit1002s-projects.vercel.app",
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["Authorization", "Content-Type"],
