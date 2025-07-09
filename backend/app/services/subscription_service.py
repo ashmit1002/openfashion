@@ -230,19 +230,31 @@ def handle_subscription_webhook(event: dict) -> dict:
 def handle_checkout_completed(session: dict) -> dict:
     """Handle successful checkout completion"""
     from app.database import users_collection
-    
-    customer_email = session['metadata']['user_email']
-    tier_id = session['metadata']['tier_id']
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Try to get customer_email from session, fallback to metadata if present
+    customer_email = session.get('customer_email')
+    tier_id = None
+    if 'metadata' in session and session['metadata']:
+        customer_email = customer_email or session['metadata'].get('user_email')
+        tier_id = session['metadata'].get('tier_id')
+    if not customer_email:
+        logger.error(f"No customer_email found in session: {session}")
+        raise ValueError("No customer_email found in Stripe session")
+    if not tier_id:
+        logger.error(f"No tier_id found in session metadata: {session}")
+        raise ValueError("No tier_id found in Stripe session metadata")
     subscription_id = session.get('subscription')
-    
+
     # Update user subscription status
     tier = get_subscription_tier(tier_id)
     if not tier:
         raise ValueError(f"Invalid tier ID: {tier_id}")
-    
+
     # Calculate subscription end date (1 month from now)
     subscription_end_date = datetime.utcnow() + timedelta(days=30)
-    
+
     users_collection.update_one(
         {'email': customer_email},
         {
@@ -250,12 +262,12 @@ def handle_checkout_completed(session: dict) -> dict:
                 'subscription_status': 'premium',
                 'subscription_tier': tier_id,
                 'subscription_end_date': subscription_end_date,
-                'stripe_customer_id': session['customer'],
+                'stripe_customer_id': session.get('customer'),
                 'stripe_subscription_id': subscription_id
             }
         }
     )
-    
+
     return {
         'status': 'success',
         'message': f'Subscription activated for {customer_email}',
