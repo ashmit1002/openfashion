@@ -40,7 +40,7 @@ export default function PreferencesPage() {
   const fetchQuizStatus = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch("/api/style/quiz-status", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/style/quiz-status`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -59,7 +59,7 @@ export default function PreferencesPage() {
 
   const fetchQuestions = async () => {
     try {
-      const response = await fetch("/api/style/quiz-questions")
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/style/quiz-questions`)
       const data = await response.json()
       setQuestions(data)
       setLoading(false)
@@ -76,7 +76,7 @@ export default function PreferencesPage() {
   const startQuiz = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch("/api/style/quiz/retake", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/style/quiz/retake`, {
         method: "POST",
         headers: {
           'Authorization': `Bearer ${token}`
@@ -119,7 +119,7 @@ export default function PreferencesPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch("/api/style/quiz/submit-response", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/style/quiz/submit-response`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -160,7 +160,7 @@ export default function PreferencesPage() {
   const completeQuiz = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch("/api/style/quiz/complete", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/style/quiz/complete`, {
         method: "POST",
         headers: {
           'Authorization': `Bearer ${token}`

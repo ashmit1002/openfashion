@@ -34,7 +34,7 @@ export function WishlistButton({ item, className = '' }: WishlistButtonProps) {
       const token = localStorage.getItem('token');
       if (!token) return;
       
-      const response = await fetch('/api/wishlist/', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/wishlist/`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -67,7 +67,7 @@ export function WishlistButton({ item, className = '' }: WishlistButtonProps) {
       if (isInWishlist) {
 
         // Find the item ID first
-        const response = await fetch('/api/wishlist/', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/wishlist/`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -81,7 +81,7 @@ export function WishlistButton({ item, className = '' }: WishlistButtonProps) {
         const wishlistItem = items.find((i: any) => i.link === item.link);
 
         if (wishlistItem) {
-          await fetch('/api/wishlist/delete', {
+          await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/wishlist/delete`, {
             method: 'DELETE',
             headers: {
               'Authorization': `Bearer ${token}`
@@ -112,7 +112,7 @@ export function WishlistButton({ item, className = '' }: WishlistButtonProps) {
           const thumbnailFile = new File([thumbnailBlob], 'thumbnail.jpg', { type: 'image/jpeg' });
           formData.append('thumbnail', thumbnailFile);
 
-          const response = await fetch('/api/wishlist/add', {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/wishlist/add`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`
