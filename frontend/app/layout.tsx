@@ -7,12 +7,14 @@ import Link from "next/link"
 import "./globals.css"
 import { ShoppingBag, Menu, Heart } from "lucide-react"
 import { AuthProvider } from "@/contexts/AuthContext"
+import { ThemeProvider } from "@/contexts/ThemeContext"
 import { Toaster } from "sonner"
 import { NavLinks } from "@/components/NavLinks"
 import { UserAccountButton } from "@/components/UserAccountButton"
 import MobileNav from "@/components/MobileNav"
 import StyleChatbot from "@/components/ui/StyleChatbot"
 import PremiumBanner from '@/components/PremiumBanner'
+import ThemeToggle from '@/components/ThemeToggle'
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -28,6 +30,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <link rel="icon" href="/favicon-32x32.png" type="image/x-icon" />
       </head>
       <body className={`${inter.className} antialiased min-h-screen bg-white`}>
+        <ThemeProvider>
         <AuthProvider>
           <PremiumBanner />
           <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm z-40 border-b border-gray-100">
@@ -42,11 +45,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Link href="/wishlist">
+                <Link href="/wishlist">
                     <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
                       <Heart className="h-5 w-5 text-gray-600" />
                     </button>
                   </Link>
+                  <ThemeToggle />
                   <div className="h-6 border-l border-gray-200 mx-2" />
                   <UserAccountButton />
                 </div>
@@ -77,6 +81,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <MobileNav />
           <StyleChatbot />
         </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
