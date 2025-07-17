@@ -1,3 +1,5 @@
+**Built by Ashmit Shrivastava**
+
 # OpenFashion - AI-Powered Fashion Analyzer
 
 OpenFashion is a comprehensive fashion application that combines AI-powered image analysis, reverse image search, and personalized style recommendations to help users discover and curate their perfect wardrobe.
@@ -137,10 +139,6 @@ The application features an intelligent style chatbot that provides:
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Support
 
