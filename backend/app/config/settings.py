@@ -16,6 +16,7 @@ class Settings:
     # S3
     S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "openfashion-user-closets")
     WISHLIST_S3_BUCKET_NAME = os.getenv("WISHLIST_S3_BUCKET_NAME", "openfashion-user-wishlists")
+    POSTS_S3_BUCKET_NAME = os.getenv("POSTS_S3_BUCKET_NAME", "openfashion-user-posts")
 
     # remove.bg
     REMOVE_BG_API_KEY = os.getenv("REMOVE_BG_API_KEY")

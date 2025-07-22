@@ -8,6 +8,7 @@ from google.cloud import vision
 from app.services.s3_service import upload_to_s3
 from app.services.search_service import get_clothing_from_google_search
 from app.services.remove_bg_service import remove_background
+from app.config.settings import settings
 
 client = vision.ImageAnnotatorClient()
 
@@ -101,17 +102,25 @@ def analyze_image(filepath: str, filename: str):
                 # Get dominant color
                 dominant_color = get_dominant_color(cropped)
 
-                # Encode original crop and upload to S3
+                # Encode original crop and upload to S3 (use posts bucket)
                 _, original_buf = cv2.imencode(".jpg", cropped)
                 timestamp = int(time.time())
                 base_name = f"{obj.name}_{x_min}_{y_min}_{timestamp}"
 
-                original_url = upload_to_s3(original_buf.tobytes(), f"{base_name}_original.jpg")
+                original_url = upload_to_s3(
+                    original_buf.tobytes(),
+                    f"{base_name}_original.jpg",
+                    bucket_name=settings.POSTS_S3_BUCKET_NAME
+                )
 
-                # Attempt remove.bg and upload
+                # Attempt remove.bg and upload (use posts bucket)
                 try:
                     bg_removed_bytes = remove_background(original_buf.tobytes())
-                    removed_url = upload_to_s3(bg_removed_bytes, f"{base_name}_removed.jpg")
+                    removed_url = upload_to_s3(
+                        bg_removed_bytes,
+                        f"{base_name}_removed.jpg",
+                        bucket_name=settings.POSTS_S3_BUCKET_NAME
+                    )
                 except Exception as e:
                     logger.warning("\u26a0\ufe0f Background removal failed: %s", e)
                     removed_url = ""
