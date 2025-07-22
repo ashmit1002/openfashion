@@ -161,7 +161,7 @@ export const upload = {
 export const closet = {
   getAll: () => api.get('/closet/'),
   addItem: (item: any) => api.post('/closet/', item),
-  deleteItem: (itemId: string) => api.delete(`/closet/${itemId}`),
+  deleteItem: (itemId: string) => api.delete(`/closet/delete?id=${itemId}`),
   getUserCloset: (username: string) => api.get(`/closet/user/${username}`),
 }
 

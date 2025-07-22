@@ -130,11 +130,11 @@ export default function ClosetPage() {
     )
   }
 
-  const handleDelete = async (link: string, category: string) => {
+  const handleDelete = async (id: string) => {
     const token = localStorage.getItem("token")
     if (!token) return router.push("/login")
     try {
-      await api.delete("/closet/delete", { params: { link, category } })
+      await api.delete(`/closet/delete?id=${id}`)
       fetchCloset()
     } catch (err) {
       console.error("Delete failed:", err)
@@ -425,7 +425,7 @@ export default function ClosetPage() {
                         <Edit2 className="h-5 w-5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(item.link, item.category)}
+                        onClick={() => handleDelete(item._id)}
                         className="bg-white/80 hover:bg-red-600 text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
                         title="Delete"
                       >
