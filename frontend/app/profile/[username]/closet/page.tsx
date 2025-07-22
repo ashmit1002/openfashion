@@ -34,11 +34,22 @@ interface ComponentGroup {
   clothing_items: ClothingItem[]
 }
 
+interface OutfitPost {
+  _id: string
+  image_url: string
+  caption?: string
+  timestamp: string
+  components: any[]
+}
+
 export default function UserClosetPage() {
   const [components, setComponents] = useState<ComponentGroup[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>("All")
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<User | null>(null)
+  const [tab, setTab] = useState<'outfits' | 'closet'>('outfits')
+  const [outfitPosts, setOutfitPosts] = useState<OutfitPost[]>([])
+  const [loadingOutfits, setLoadingOutfits] = useState(true)
   const router = useRouter()
   const params = useParams()
   const username = params.username as string
@@ -67,9 +78,23 @@ export default function UserClosetPage() {
     }
   }
 
+  // Fetch user's outfit posts
+  const fetchOutfitPosts = async () => {
+    setLoadingOutfits(true)
+    try {
+      const res = await api.get(`/closet/outfit/user/${username}`)
+      setOutfitPosts(res.data.outfit_posts || [])
+    } catch (err) {
+      console.error("Failed to fetch outfit posts:", err)
+    } finally {
+      setLoadingOutfits(false)
+    }
+  }
+
   useEffect(() => {
     fetchUserCloset()
     fetchUserProfile()
+    fetchOutfitPosts()
   }, [username])
 
   const getAllItems = (): ClothingItem[] => {
@@ -112,80 +137,132 @@ export default function UserClosetPage() {
         </div>
       </div>
 
-      {/* Closet Section */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-12">
-        {/* Left Column: Pinterest-style Masonry Grid */}
-        <div>
-          <div className="flex justify-between items-center mb-10">
-            <h1 className="text-3xl font-extrabold tracking-tight">{profile?.display_name || profile?.username}'s Closet</h1>
-          </div>
-          {loading ? (
-            <p className="text-gray-400 text-lg">Loading closet...</p>
-          ) : (
-            <div className="[column-count:1] sm:[column-count:2] lg:[column-count:3] xl:[column-count:4] [column-gap:2.5rem]">
-              {getAllItems().map((item, index) => (
-                <div
-                  key={index}
-                  className="mb-10 break-inside-avoid rounded-3xl shadow-xl bg-white overflow-hidden group relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
-                  style={{ minHeight: 320 }}
+      {/* Tabs */}
+      <div className="flex gap-4 mb-8">
+        <button
+          className={`px-6 py-2 rounded-full font-semibold text-sm ${tab === 'outfits' ? 'bg-meta-pink text-white' : 'bg-gray-100 text-gray-800'}`}
+          onClick={() => setTab('outfits')}
+        >
+          Outfit Posts
+        </button>
+        <button
+          className={`px-6 py-2 rounded-full font-semibold text-sm ${tab === 'closet' ? 'bg-meta-pink text-white' : 'bg-gray-100 text-gray-800'}`}
+          onClick={() => setTab('closet')}
+        >
+          Closet Items
+        </button>
+      </div>
+
+      {/* Content */}
+      {tab === 'outfits' ? (
+        loadingOutfits ? (
+          <p className="text-gray-400 text-lg">Loading outfit posts...</p>
+        ) : (
+          <div className="[column-count:1] sm:[column-count:2] lg:[column-count:3] xl:[column-count:4] [column-gap:2.5rem]">
+            {outfitPosts.map(post => (
+              <div
+                key={post._id}
+                className="mb-10 break-inside-avoid rounded-3xl shadow-xl bg-white overflow-hidden group relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
+                style={{ minHeight: 320 }}
+              >
+                <div className="relative w-full aspect-[3/4] bg-gray-100 cursor-pointer"
+                  onClick={() => router.push(`/closet/${post._id}`)}
                 >
-                  <div className="relative w-full aspect-[3/4] bg-gray-100">
-                    <Image
-                      src={item.thumbnail || "/placeholder.svg"}
-                      alt={item.name}
-                      fill
-                      className="object-cover rounded-3xl"
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 px-5 py-4 flex flex-col gap-1"
-                      style={{
-                        background: 'rgba(255,255,255,0.35)',
-                        backdropFilter: 'blur(12px)',
-                        borderBottomLeftRadius: '1.5rem',
-                        borderBottomRightRadius: '1.5rem',
-                      }}
-                    >
-                      <div className="text-gray-900 font-bold text-lg truncate drop-shadow-sm">{item.name}</div>
-                      <div className="text-meta-pink font-extrabold text-base drop-shadow-sm">{item.price}</div>
-                    </div>
-                  </div>
-                  {/* Actions: View product only */}
-                  <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                    <a
-                      href={item.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-white/80 hover:bg-meta-pink text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
-                      title="View product"
-                    >
-                      <ExternalLink className="h-5 w-5" />
-                    </a>
+                  <img
+                    src={post.image_url || "/placeholder.svg"}
+                    alt={post.caption || "Outfit post"}
+                    className="object-cover rounded-3xl w-full h-full"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 px-5 py-4 flex flex-col gap-1"
+                    style={{
+                      background: 'rgba(255,255,255,0.35)',
+                      backdropFilter: 'blur(12px)',
+                      borderBottomLeftRadius: '1.5rem',
+                      borderBottomRightRadius: '1.5rem',
+                    }}
+                  >
+                    <div className="text-gray-900 font-bold text-lg truncate drop-shadow-sm">{post.caption}</div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Filters */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800">Categories</h2>
-          <div className="space-y-2">
-            {allCategories.map((cat, i) => (
-              <button
-                key={i}
-                onClick={() => setSelectedCategory(cat)}
-                className={`block text-left w-full text-sm px-4 py-2 rounded-md ${
-                  selectedCategory === cat
-                    ? "bg-meta-pink text-white"
-                    : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                }`}
-              >
-                {cat}
-              </button>
+              </div>
             ))}
           </div>
+        )
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-12">
+          {/* Left Column: Pinterest-style Masonry Grid, now more airy and modern */}
+          <div>
+            <div className="flex justify-between items-center mb-10">
+              <h1 className="text-3xl font-extrabold tracking-tight">{profile?.display_name || profile?.username}'s Closet</h1>
+            </div>
+            {loading ? (
+              <p className="text-gray-400 text-lg">Loading closet...</p>
+            ) : (
+              <div className="[column-count:1] sm:[column-count:2] lg:[column-count:3] xl:[column-count:4] [column-gap:2.5rem]">
+                {getAllItems().map((item, index) => (
+                  <div
+                    key={index}
+                    className="mb-10 break-inside-avoid rounded-3xl shadow-xl bg-white overflow-hidden group relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
+                    style={{ minHeight: 320 }}
+                  >
+                    <div className="relative w-full aspect-[3/4] bg-gray-100">
+                      <Image
+                        src={item.thumbnail || "/placeholder.svg"}
+                        alt={item.name}
+                        fill
+                        className="object-cover rounded-3xl"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 px-5 py-4 flex flex-col gap-1"
+                        style={{
+                          background: 'rgba(255,255,255,0.35)',
+                          backdropFilter: 'blur(12px)',
+                          borderBottomLeftRadius: '1.5rem',
+                          borderBottomRightRadius: '1.5rem',
+                        }}
+                      >
+                        <div className="text-gray-900 font-bold text-lg truncate drop-shadow-sm">{item.name}</div>
+                        <div className="text-meta-pink font-extrabold text-base drop-shadow-sm">{item.price}</div>
+                      </div>
+                    </div>
+                    {/* Actions: View product only */}
+                    <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                      <a
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-white/80 hover:bg-meta-pink text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
+                        title="View product"
+                      >
+                        <ExternalLink className="h-5 w-5" />
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Filters */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-800">Categories</h2>
+            <div className="space-y-2">
+              {allCategories.map((cat, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`block text-left w-full text-sm px-4 py-2 rounded-md ${
+                    selectedCategory === cat
+                      ? "bg-meta-pink text-white"
+                      : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

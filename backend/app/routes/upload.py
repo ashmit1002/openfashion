@@ -8,6 +8,8 @@ from app.auth.dependencies import get_current_user_id
 from app.services.similar_service import generate_similar_item_queries
 from app.services.search_service import get_shopping_results_from_serpapi
 from app.services.subscription_service import check_upload_limit, increment_upload_count
+from app.config.settings import settings
+from app.services.s3_service import upload_to_s3
 
 # Temporary in-memory closet store
 user_closets = {}
@@ -90,12 +92,9 @@ async def upload_thumbnail(file: UploadFile = File(...)):
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Invalid file type")
 
-    os.makedirs("uploads", exist_ok=True)
+    # Upload to S3 closet bucket instead of saving locally
+    image_bytes = await file.read()
     filename = f"{int(time.time())}_{file.filename}"
-    file_path = os.path.join("uploads", filename)
-
-    with open(file_path, "wb") as f:
-        f.write(await file.read())
-
-    return {"url": f"http://localhost:8000/uploads/{filename}"}
+    s3_url = upload_to_s3(image_bytes, filename, bucket_name=settings.S3_BUCKET_NAME)
+    return {"url": s3_url}
 

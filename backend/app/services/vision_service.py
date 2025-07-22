@@ -143,6 +143,7 @@ def analyze_image(filepath: str, filename: str):
                     "name": category,
                     "original_image_url": original_url,
                     "bg_removed_url": removed_url,
+                    "image_url": original_url,  # For frontend compatibility
                     "dominant_color": dominant_color,
                     "clothing_items": combined_items
                 })
