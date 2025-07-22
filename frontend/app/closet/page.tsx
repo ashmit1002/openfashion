@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button"
 import { Trash2, ExternalLink, Edit2 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
+import { MasonryGrid } from "@/components/ui/MasonryGrid"
 
 interface ClothingItem {
+  _id: string
   name: string
   thumbnail: string
   price: string
@@ -35,6 +37,24 @@ interface User {
   following: string[]
 }
 
+// New interfaces for outfit posts
+interface OutfitComponent {
+  name: string
+  category: string
+  position?: { x: number; y: number }
+  closet_item_link?: string
+  notes?: string
+}
+
+interface OutfitPost {
+  _id: string
+  user_id: string
+  image_url: string
+  caption?: string
+  timestamp: string
+  components: OutfitComponent[]
+}
+
 export default function ClosetPage() {
   const [components, setComponents] = useState<ComponentGroup[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>("All")
@@ -48,6 +68,11 @@ export default function ClosetPage() {
   const [editData, setEditData] = useState({ display_name: '', avatar_url: '', bio: '' })
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Tab state
+  const [tab, setTab] = useState<'outfits' | 'closet'>('outfits')
+  const [outfitPosts, setOutfitPosts] = useState<OutfitPost[]>([])
+  const [loadingOutfits, setLoadingOutfits] = useState(true)
 
   // Fetch closet
   const fetchCloset = async () => {
@@ -76,9 +101,24 @@ export default function ClosetPage() {
     }
   }
 
+  // Fetch outfit posts
+  const fetchOutfitPosts = async () => {
+    if (!user) return
+    setLoadingOutfits(true)
+    try {
+      const res = await api.get(`/closet/outfit/user/${user.username}`)
+      setOutfitPosts(res.data.outfit_posts || [])
+    } catch (err) {
+      console.error("Failed to fetch outfit posts:", err)
+    } finally {
+      setLoadingOutfits(false)
+    }
+  }
+
   useEffect(() => {
     fetchCloset()
     fetchProfile()
+    fetchOutfitPosts()
     // eslint-disable-next-line
   }, [user])
 
@@ -125,9 +165,13 @@ export default function ClosetPage() {
   };
 
   const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     try {
-      await api.put('/users/user/profile', editData);
+      await api.put('/users/user/profile', {
+        display_name: editData.display_name,
+        avatar_url: editData.avatar_url,
+        bio: editData.bio
+      });
       toast.success("Profile updated!", { style: { background: "#e9fbe9", color: "#1a7f37" } })
       setEditMode(false);
       fetchProfile();
@@ -149,6 +193,16 @@ export default function ClosetPage() {
   };
 
   const allCategories = ["All", ...new Set(components.map(group => group.name))]
+
+  // In ClosetPage component, add a function to delete an outfit post
+  const handleDeleteOutfitPost = async (postId: string) => {
+    try {
+      await api.delete(`/closet/outfit/${postId}`)
+      fetchOutfitPosts()
+    } catch (err) {
+      alert("Failed to delete post.")
+    }
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -195,134 +249,216 @@ export default function ClosetPage() {
               <span className="text-gray-500"> Following</span>
             </div>
           </div>
-          <form className="w-full max-w-lg space-y-4" onSubmit={handleSave}>
-            <div className="flex gap-4">
-              <input
-                className="flex-1 rounded-lg border border-gray-200 focus:border-meta-pink focus:ring-meta-pink px-3 py-2"
-                placeholder="Display Name"
-                value={editData.display_name}
-                onChange={e => setEditData({ ...editData, display_name: e.target.value })}
+          {/* Show bio as plain text unless in edit mode */}
+          {!editMode && profile?.bio && (
+            <div className="text-gray-600 text-center text-base whitespace-pre-line mb-4">{profile.bio}</div>
+          )}
+          {/* Only show the form in edit mode */}
+          {editMode && (
+            <form className="w-full max-w-lg space-y-4" onSubmit={handleSave}>
+              <div className="flex gap-4">
+                <input
+                  className="flex-1 rounded-lg border border-gray-200 focus:border-meta-pink focus:ring-meta-pink px-3 py-2"
+                  placeholder="Display Name"
+                  value={editData.display_name}
+                  onChange={e => setEditData({ ...editData, display_name: e.target.value })}
+                  disabled={!editMode}
+                />
+              </div>
+              <textarea
+                className="w-full rounded-lg border border-gray-200 focus:border-meta-pink focus:ring-meta-pink px-3 py-2 min-h-[60px]"
+                placeholder="Bio"
+                value={editData.bio}
+                onChange={e => setEditData({ ...editData, bio: e.target.value })}
                 disabled={!editMode}
+                rows={3}
               />
-            </div>
-            <textarea
-              className="w-full rounded-lg border border-gray-200 focus:border-meta-pink focus:ring-meta-pink px-3 py-2 min-h-[60px]"
-              placeholder="Bio"
-              value={editData.bio}
-              onChange={e => setEditData({ ...editData, bio: e.target.value })}
-              disabled={!editMode}
-              rows={3}
-            />
-            <div className="flex gap-2 justify-end">
-              {editMode ? (
-                <>
-                  <Button type="button" variant="outline" onClick={handleCancel} className="border-gray-300">Cancel</Button>
-                  <Button type="submit" className="bg-meta-pink text-white hover:bg-meta-pink/90">Save</Button>
-                </>
-              ) : (
-                <Button type="button" className="bg-meta-pink text-white hover:bg-meta-pink/90" onClick={handleEdit}>
-                  Edit Profile
-                </Button>
-              )}
-            </div>
-          </form>
+              <div className="flex gap-2 justify-end">
+                <Button type="button" variant="outline" onClick={handleCancel} className="border-gray-300">Cancel</Button>
+                <Button type="submit" className="bg-meta-pink text-white hover:bg-meta-pink/90">Save</Button>
+              </div>
+            </form>
+          )}
+          {/* Edit Profile button only if not in edit mode */}
+          {!editMode && (
+            <Button type="button" className="bg-meta-pink text-white hover:bg-meta-pink/90 mt-2" onClick={handleEdit}>
+              Edit Profile
+            </Button>
+          )}
         </div>
       </div>
 
       {/* Closet Section */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-12">
-        {/* Left Column: Pinterest-style Masonry Grid, now more airy and modern */}
-        <div>
-          <div className="flex justify-between items-center mb-10">
-            <h1 className="text-3xl font-extrabold tracking-tight">Your Closet</h1>
-            <Button
-              className="bg-meta-pink hover:bg-meta-pink/90 text-white px-6 py-2 rounded-full shadow-md"
-              onClick={() => router.push("/add-item")}
-            >
-              + Add Item
-            </Button>
-          </div>
-          {loading ? (
-            <p className="text-gray-400 text-lg">Loading your closet...</p>
-          ) : (
-            <div className="[column-count:1] sm:[column-count:2] lg:[column-count:3] xl:[column-count:4] [column-gap:2.5rem]">
-              {getAllItems().map((item, index) => (
-                <div
-                  key={index}
-                  className="mb-10 break-inside-avoid rounded-3xl shadow-xl bg-white overflow-hidden group relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
-                  style={{ minHeight: 320 }}
-                >
-                  <div className="relative w-full aspect-[3/4] bg-gray-100">
-                    <Image
-                      src={item.thumbnail || "/placeholder.svg"}
-                      alt={item.name}
-                      fill
-                      className="object-cover rounded-3xl"
-                    />
-                    <div className="absolute bottom-0 left-0 right-0 px-5 py-4 flex flex-col gap-1"
-                      style={{
-                        background: 'rgba(255,255,255,0.35)',
-                        backdropFilter: 'blur(12px)',
-                        borderBottomLeftRadius: '1.5rem',
-                        borderBottomRightRadius: '1.5rem',
-                      }}
-                    >
-                      <div className="text-gray-900 font-bold text-lg truncate drop-shadow-sm">{item.name}</div>
-                      <div className="text-meta-pink font-extrabold text-base drop-shadow-sm">{item.price}</div>
-                    </div>
-                  </div>
-                  {/* Actions: hidden until hover */}
-                  <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                    <a
-                      href={item.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-white/80 hover:bg-meta-pink text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
-                      title="View product"
-                    >
-                      <ExternalLink className="h-5 w-5" />
-                    </a>
-                    <button
-                      onClick={() => router.push(`/edit-item?title=${encodeURIComponent(item.name)}&category=${encodeURIComponent(item.category)}&price=${encodeURIComponent(item.price)}&link=${encodeURIComponent(item.link)}&thumbnail=${encodeURIComponent(item.thumbnail)}`)}
-                      className="bg-white/80 hover:bg-blue-600 text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
-                      title="Edit"
-                    >
-                      <Edit2 className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(item.link, item.category)}
-                      className="bg-white/80 hover:bg-red-600 text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: Filters */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800">Categories</h2>
-          <div className="space-y-2">
-            {allCategories.map((cat, i) => (
-              <button
-                key={i}
-                onClick={() => setSelectedCategory(cat)}
-                className={`block text-left w-full text-sm px-4 py-2 rounded-md ${
-                  selectedCategory === cat
-                    ? "bg-meta-pink text-white"
-                    : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                }`}
+      <div className="flex gap-4 mb-8">
+        <button
+          className={`px-4 py-2 rounded-full font-semibold ${tab === 'outfits' ? 'bg-meta-pink text-white' : 'bg-gray-100 text-gray-800'}`}
+          onClick={() => setTab('outfits')}
+        >
+          Outfit Posts
+        </button>
+        <button
+          className={`px-4 py-2 rounded-full font-semibold ${tab === 'closet' ? 'bg-meta-pink text-white' : 'bg-gray-100 text-gray-800'}`}
+          onClick={() => setTab('closet')}
+        >
+          Closet Items
+        </button>
+        {tab === 'outfits' && (
+          <Button
+            className="ml-auto bg-meta-pink hover:bg-meta-pink/90 text-white px-6 py-2 rounded-full shadow-md"
+            onClick={() => router.push('/closet/add-outfit')}
+          >
+            + New Outfit Post
+          </Button>
+        )}
+      </div>
+      {tab === 'outfits' ? (
+        loadingOutfits ? (
+          <p className="text-gray-400 text-lg">Loading outfit posts...</p>
+        ) : (
+          <div className="[column-count:1] sm:[column-count:2] lg:[column-count:3] xl:[column-count:4] [column-gap:2.5rem]">
+            {outfitPosts.map(post => (
+              <div
+                key={post._id}
+                className="mb-10 break-inside-avoid rounded-3xl shadow-xl bg-white overflow-hidden group relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
+                style={{ minHeight: 320 }}
               >
-                {cat}
-              </button>
+                <div className="relative w-full aspect-[3/4] bg-gray-100 cursor-pointer"
+                  onClick={() => router.push(`/closet/${post._id}`)}
+                >
+                  <img
+                    src={post.image_url || "/placeholder.svg"}
+                    alt={post.caption || "Outfit post"}
+                    className="object-cover rounded-3xl w-full h-full"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 px-5 py-4 flex flex-col gap-1"
+                    style={{
+                      background: 'rgba(255,255,255,0.35)',
+                      backdropFilter: 'blur(12px)',
+                      borderBottomLeftRadius: '1.5rem',
+                      borderBottomRightRadius: '1.5rem',
+                    }}
+                  >
+                    <div className="text-gray-900 font-bold text-lg truncate drop-shadow-sm">{post.caption}</div>
+                  </div>
+                  {/* Overlay edit/delete buttons for owner */}
+                  {user && user.email === post.user_id && (
+                    <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                      <button
+                        onClick={e => { e.stopPropagation(); router.push(`/closet/${post._id}/edit`) }}
+                        className="bg-white/80 hover:bg-blue-600 text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
+                        title="Edit"
+                      >
+                        <Edit2 className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); handleDeleteOutfitPost(post._id) }}
+                        className="bg-white/80 hover:bg-red-600 text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
+        )
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-12">
+          {/* Left Column: Pinterest-style Masonry Grid, now more airy and modern */}
+          <div>
+            <div className="flex justify-between items-center mb-10">
+              <h1 className="text-3xl font-extrabold tracking-tight">Your Closet</h1>
+              <Button
+                className="bg-meta-pink hover:bg-meta-pink/90 text-white px-6 py-2 rounded-full shadow-md"
+                onClick={() => router.push("/add-item")}
+              >
+                + Add Item
+              </Button>
+            </div>
+            {loading ? (
+              <p className="text-gray-400 text-lg">Loading your closet...</p>
+            ) : (
+              <div className="[column-count:1] sm:[column-count:2] lg:[column-count:3] xl:[column-count:4] [column-gap:2.5rem]">
+                {getAllItems().map((item, index) => (
+                  <div
+                    key={index}
+                    className="mb-10 break-inside-avoid rounded-3xl shadow-xl bg-white overflow-hidden group relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
+                    style={{ minHeight: 320 }}
+                  >
+                    <div className="relative w-full aspect-[3/4] bg-gray-100">
+                      <Image
+                        src={item.thumbnail || "/placeholder.svg"}
+                        alt={item.name}
+                        fill
+                        className="object-cover rounded-3xl"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 px-5 py-4 flex flex-col gap-1"
+                        style={{
+                          background: 'rgba(255,255,255,0.35)',
+                          backdropFilter: 'blur(12px)',
+                          borderBottomLeftRadius: '1.5rem',
+                          borderBottomRightRadius: '1.5rem',
+                        }}
+                      >
+                        <div className="text-gray-900 font-bold text-lg truncate drop-shadow-sm">{item.name}</div>
+                        <div className="text-meta-pink font-extrabold text-base drop-shadow-sm">{item.price}</div>
+                      </div>
+                    </div>
+                    {/* Actions: hidden until hover */}
+                    <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                      <a
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-white/80 hover:bg-meta-pink text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
+                        title="View product"
+                      >
+                        <ExternalLink className="h-5 w-5" />
+                      </a>
+                      <button
+                        onClick={() => router.push(`/edit-item?id=${encodeURIComponent(item._id)}&title=${encodeURIComponent(item.name)}&category=${encodeURIComponent(item.category)}&price=${encodeURIComponent(item.price)}&link=${encodeURIComponent(item.link)}&thumbnail=${encodeURIComponent(item.thumbnail)}`)}
+                        className="bg-white/80 hover:bg-blue-600 text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
+                        title="Edit"
+                      >
+                        <Edit2 className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item.link, item.category)}
+                        className="bg-white/80 hover:bg-red-600 text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Filters */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-800">Categories</h2>
+            <div className="space-y-2">
+              {allCategories.map((cat, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`block text-left w-full text-sm px-4 py-2 rounded-md ${
+                    selectedCategory === cat
+                      ? "bg-meta-pink text-white"
+                      : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

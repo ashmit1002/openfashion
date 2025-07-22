@@ -10,6 +10,7 @@ wishlist_collection = db["wishlists"]
 style_profiles_collection = db["style_profiles"]
 user_interactions_collection = db["user_interactions"]
 style_quizzes_collection = db["style_quizzes"]
+outfit_posts_collection = db["outfit_posts"]
 
 # Create indexes for better performance
 wishlist_collection.create_index([("user_id", 1)])

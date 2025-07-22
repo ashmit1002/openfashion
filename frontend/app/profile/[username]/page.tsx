@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
-import api from "@/lib/api"
+import api, { setAuthToken } from "@/lib/api"
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
@@ -100,6 +100,8 @@ export default function ProfilePage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      const token = localStorage.getItem('token')
+      if (token) setAuthToken(token)
       await api.put('/users/user/profile', editData);
       toast.success("Profile updated!", { style: { background: "#e9fbe9", color: "#1a7f37" } })
       setEditMode(false);

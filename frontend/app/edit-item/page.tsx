@@ -6,11 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Save, ArrowLeft } from "lucide-react"
+import { useAuth } from "@/contexts/AuthContext"
 
 function EditItemPageInner() {
   const router = useRouter()
   const params = useSearchParams()
+  const { user } = useAuth();
 
+  const [id, setId] = useState("")
   const [name, setName] = useState("")
   const [category, setCategory] = useState("")
   const [price, setPrice] = useState("")
@@ -21,6 +24,7 @@ function EditItemPageInner() {
 
   useEffect(() => {
     if (params) {
+      setId(params.get("id") || "")
       setName(params.get("title") || "")
       setCategory(params.get("category") || "")
       setPrice(params.get("price") || "")
@@ -33,12 +37,15 @@ function EditItemPageInner() {
     e.preventDefault()
     const token = localStorage.getItem("token")
     if (!token) return router.push("/login")
+    if (!user) return router.push("/login")
 
     setAuthToken(token)
     setLoading(true)
 
     try {
       await api.put("/closet/update", {
+        id,
+        user_id: user.email,
         name,
         category,
         price,
