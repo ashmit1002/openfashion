@@ -55,7 +55,7 @@ export default function EditOutfitPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [caption, setCaption] = useState("")
   const [components, setComponents] = useState<any[]>([])
-  const [tagForm, setTagForm] = useState<{ x: number; y: number } | null>(null)
+  const [tagForm, setTagForm] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
   const [tagInput, setTagInput] = useState<{ name: string; category: string; notes: string; link: string; imageFile: File | null; imagePreview: string | null; image_url: string | null }>({ name: "", category: "", notes: "", link: "", imageFile: null, imagePreview: null, image_url: null })
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imageContainerRef = useRef<HTMLDivElement>(null)
@@ -135,7 +135,7 @@ export default function EditOutfitPage() {
     const rect = imageContainerRef.current.getBoundingClientRect()
     const x = (e.clientX - rect.left) / rect.width
     const y = (e.clientY - rect.top) / rect.height
-    setTagForm({ x, y })
+    setTagForm({ x, y, width: 0, height: 0 })
     setTagInput({ name: "", category: "", notes: "", link: "", imageFile: null, imagePreview: null, image_url: null })
   }
 

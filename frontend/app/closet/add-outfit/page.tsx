@@ -22,7 +22,7 @@ export default function AddOutfitPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [caption, setCaption] = useState("")
   const [components, setComponents] = useState<OutfitComponentInput[]>([])
-  const [tagForm, setTagForm] = useState<{ x: number; y: number } | null>(null)
+  const [tagForm, setTagForm] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
   const [tagInput, setTagInput] = useState<{ name: string; category: string; notes: string; link: string; imageFile: File | null; imagePreview: string | null }>({ name: "", category: "", notes: "", link: "", imageFile: null, imagePreview: null })
   const [loading, setLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -63,7 +63,7 @@ export default function AddOutfitPage() {
     const rect = imageContainerRef.current.getBoundingClientRect()
     const x = (e.clientX - rect.left) / rect.width
     const y = (e.clientY - rect.top) / rect.height
-    setTagForm({ x, y })
+    setTagForm({ x, y, width: 0, height: 0 })
     setTagInput({ name: "", category: "", notes: "", link: "", imageFile: null, imagePreview: null })
   }
 
@@ -137,7 +137,7 @@ export default function AddOutfitPage() {
     }
     setComponents([
       ...components,
-      { ...tagInput, region: tagForm, imagePreview: imageUrl, imageFile }
+      tagForm ? { ...tagInput, region: tagForm, imagePreview: imageUrl, imageFile } : { ...tagInput, imagePreview: imageUrl, imageFile }
     ]);
     setTagForm(null);
     setTagInput({ name: "", category: "", notes: "", link: "", imageFile: null, imagePreview: null });
@@ -209,8 +209,8 @@ export default function AddOutfitPage() {
                       key={idx}
                       className="absolute z-10"
                       style={{
-                        left: `${comp.position?.x * 100}%`,
-                        top: `${comp.position?.y * 100}%`,
+                        left: `${(comp.position?.x ?? 0) * 100}%`,
+                        top: `${(comp.position?.y ?? 0) * 100}%`,
                         transform: "translate(-50%, -50%)",
                         pointerEvents: "auto"
                       }}
@@ -341,10 +341,10 @@ export default function AddOutfitPage() {
                   {comp.imagePreview && (
                     <img src={comp.imagePreview} alt="Component" className="w-12 h-12 object-cover rounded" />
                   )}
-                  {!comp.imagePreview && comp.image_url && (
-                    <img src={comp.image_url} alt="Component" className="w-12 h-12 object-cover rounded" />
+                  {!comp.imagePreview && (
+                    <div className="w-12 h-12 rounded bg-gray-200 overflow-hidden border border-meta-pink" />
                   )}
-                  {comp.region && imagePreview && !comp.imagePreview && !comp.image_url && (
+                  {comp.region && imagePreview && !comp.imagePreview && (
                     <div
                       className="w-12 h-12 rounded bg-gray-200 overflow-hidden border border-meta-pink"
                       style={{
@@ -378,7 +378,7 @@ export default function AddOutfitPage() {
       </div>
       {/* Cropper Modal for main image */}
       <CropperModal
-        image={rawImage}
+        image={rawImage || ""}
         open={showCropper}
         aspect={3 / 4}
         onClose={() => setShowCropper(false)}
