@@ -145,24 +145,31 @@ export default function EditOutfitPage() {
     let imageUrl = null;
     let imageFile = null;
 
-    if (tagInput.imageFile) {
-      // User uploaded a new image for the component: use this as the dominant image
-      const formData = new FormData();
-      formData.append("file", tagInput.imageFile);
-      const res = await api.post("/upload/upload-thumbnail", formData, { headers: { "Content-Type": "multipart/form-data" } });
-      imageUrl = res.data.url;
-      imageFile = tagInput.imageFile;
-    } else if (imagePreview && tagForm.width > 0 && tagForm.height > 0) {
-      // No uploaded image: crop the region from the main image and upload
-      try {
+    try {
+      if (tagInput.imageFile) {
+        // User uploaded an image for the component
+        const formData = new FormData();
+        formData.append("file", tagInput.imageFile);
+        const res = await api.post("/upload/upload-thumbnail", formData, { headers: { "Content-Type": "multipart/form-data" } });
+        imageUrl = res.data.url;
+        imageFile = tagInput.imageFile;
+        console.log("Uploaded component image, S3 URL:", imageUrl);
+      } else if (imagePreview && tagForm.width > 0 && tagForm.height > 0) {
+        // No uploaded image: crop the region from the main image and upload
         const { url } = await cropAndUploadRegion(imagePreview, tagForm);
         imageUrl = url;
-      } catch (err) {
-        alert("Failed to crop and upload region.");
-        return;
+        console.log("Cropped and uploaded region, S3 URL:", imageUrl);
       }
-    } else if (tagInput.imagePreview) {
-      imageUrl = tagInput.imagePreview;
+    } catch (err) {
+      alert("Failed to upload image for component.");
+      console.error("Component image upload/crop error:", err);
+      return;
+    }
+
+    if (!imageUrl) {
+      alert("No image available for this component.");
+      console.warn("No imageUrl for component");
+      return;
     }
 
     const updatedComponent = {
@@ -173,11 +180,9 @@ export default function EditOutfitPage() {
       imagePreview: imageUrl
     };
     if (editIdx !== null) {
-      // Update in place
       setComponents(components.map((c, i) => (i === editIdx ? updatedComponent : c)));
       setEditIdx(null);
     } else {
-      // Add new
       setComponents([
         ...components,
         updatedComponent
