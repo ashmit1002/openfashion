@@ -58,7 +58,7 @@ function EditItemPageInner() {
       let thumbnailUrl = thumbnail
       if (thumbnailFile) {
         const formData = new FormData()
-        formData.append("thumbnail", thumbnailFile)
+        formData.append("file", thumbnailFile)
         const res = await api.post("/upload/upload-thumbnail", formData, {
           headers: { "Content-Type": "multipart/form-data" }
         })
