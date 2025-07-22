@@ -142,17 +142,29 @@ export default function EditOutfitPage() {
   // In the tag form, update handleAddTag to always set image_url and use it for display
   const handleAddTag = async () => {
     if (!tagForm) return;
-    let imageUrl = tagInput.image_url || null;
+    let imageUrl = null;
     let imageFile = null;
+
     if (tagInput.imageFile) {
+      // User uploaded a new image for the component: use this as the dominant image
       const formData = new FormData();
       formData.append("file", tagInput.imageFile);
       const res = await api.post("/upload/upload-thumbnail", formData, { headers: { "Content-Type": "multipart/form-data" } });
       imageUrl = res.data.url;
       imageFile = tagInput.imageFile;
-    } else if (tagInput.imagePreview && !imageUrl) {
+    } else if (imagePreview && tagForm.width > 0 && tagForm.height > 0) {
+      // No uploaded image: crop the region from the main image and upload
+      try {
+        const { url } = await cropAndUploadRegion(imagePreview, tagForm);
+        imageUrl = url;
+      } catch (err) {
+        alert("Failed to crop and upload region.");
+        return;
+      }
+    } else if (tagInput.imagePreview) {
       imageUrl = tagInput.imagePreview;
     }
+
     const updatedComponent = {
       ...tagInput,
       region: tagForm,
