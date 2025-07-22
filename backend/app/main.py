@@ -17,13 +17,10 @@ logging.basicConfig(
 
 app = FastAPI(title="OpenFashion API")
 
-# Allow only Vercel frontend and localhost during development
+# TEMPORARY: Allow all origins for debugging CORS issues
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://openfashion.vercel.app",  # Vercel production frontend
-        "http://localhost:3000"            # Local development frontend
-    ],
+    allow_origins=["*"],  # Allow all origins for debugging
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
