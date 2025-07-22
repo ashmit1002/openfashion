@@ -2,5 +2,8 @@
   "dependencies": {
     "react-easy-crop": "^5.5.0",
     "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/react-easy-crop": "^2.0.0"
   }
 }

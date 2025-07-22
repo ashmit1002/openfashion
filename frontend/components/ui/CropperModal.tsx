@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
 import Cropper from "react-easy-crop";
+import type { Area } from "react-easy-crop";
 
 interface CropperModalProps {
   image: string;
@@ -12,12 +13,12 @@ interface CropperModalProps {
 export default function CropperModal({ image, aspect = 3 / 4, open, onClose, onCropComplete }: CropperModalProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [processing, setProcessing] = useState(false);
 
   const onCropChange = (c: any) => setCrop(c);
   const onZoomChange = (z: number) => setZoom(z);
-  const onCropAreaChange = useCallback((_, croppedAreaPixels) => {
+  const onCropAreaChange = useCallback((_: Area, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 
@@ -70,7 +71,7 @@ export default function CropperModal({ image, aspect = 3 / 4, open, onClose, onC
 }
 
 // Helper to crop image using canvas
-async function getCroppedImg(imageSrc: string, crop: any): Promise<{ blob: Blob, url: string } | null> {
+async function getCroppedImg(imageSrc: string, crop: Area): Promise<{ blob: Blob, url: string } | null> {
   return new Promise((resolve, reject) => {
     const image = new window.Image();
     image.crossOrigin = 'anonymous';
