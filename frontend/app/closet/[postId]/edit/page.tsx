@@ -31,18 +31,33 @@ async function cropAndUploadRegion(imageUrl: string, region: { x: number; y: num
       canvas.width = sw;
       canvas.height = sh;
       const ctx = canvas.getContext('2d');
-      if (!ctx) return reject('No canvas context');
+      if (!ctx) {
+        console.error('[DEBUG] No canvas context for cropping');
+        return reject('No canvas context');
+      }
       ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
       canvas.toBlob(async (blob) => {
-        if (!blob) return reject('Failed to crop');
+        if (!blob) {
+          console.error('[DEBUG] Failed to crop: no blob');
+          return reject('Failed to crop');
+        }
         const file = new File([blob], 'cropped.png', { type: 'image/png' });
         const formData = new FormData();
         formData.append('file', file);
-        const res = await api.post('/upload/upload-thumbnail', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-        resolve({ url: res.data.url, file });
+        try {
+          const res = await api.post('/upload/upload-thumbnail', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+          console.log('[DEBUG] Cropped region uploaded, S3 URL:', res.data.url);
+          resolve({ url: res.data.url, file });
+        } catch (err) {
+          console.error('[DEBUG] Failed to upload cropped region:', err);
+          reject('Failed to upload cropped region');
+        }
       }, 'image/png');
     };
-    img.onerror = reject;
+    img.onerror = (e) => {
+      console.error('[DEBUG] Image failed to load for cropping:', imageUrl, e);
+      reject('Failed to crop');
+    };
     img.src = imageUrl;
   });
 }
@@ -153,22 +168,22 @@ export default function EditOutfitPage() {
         const res = await api.post("/upload/upload-thumbnail", formData, { headers: { "Content-Type": "multipart/form-data" } });
         imageUrl = res.data.url;
         imageFile = tagInput.imageFile;
-        console.log("Uploaded component image, S3 URL:", imageUrl);
+        console.log("[DEBUG] Uploaded component image, S3 URL:", imageUrl);
       } else if (imagePreview && tagForm.width > 0 && tagForm.height > 0) {
         // No uploaded image: crop the region from the main image and upload
         const { url } = await cropAndUploadRegion(imagePreview, tagForm);
         imageUrl = url;
-        console.log("Cropped and uploaded region, S3 URL:", imageUrl);
+        console.log("[DEBUG] Cropped and uploaded region, S3 URL:", imageUrl);
       }
     } catch (err) {
       alert("Failed to upload image for component.");
-      console.error("Component image upload/crop error:", err);
+      console.error("[DEBUG] Component image upload/crop error:", err);
       return;
     }
 
     if (!imageUrl) {
       alert("No image available for this component.");
-      console.warn("No imageUrl for component");
+      console.warn("[DEBUG] No imageUrl for component");
       return;
     }
 
@@ -179,14 +194,20 @@ export default function EditOutfitPage() {
       imageFile: imageFile,
       imagePreview: imageUrl
     };
+    console.log("[DEBUG] Component to add:", updatedComponent);
     if (editIdx !== null) {
-      setComponents(components.map((c, i) => (i === editIdx ? updatedComponent : c)));
+      setComponents(prev => {
+        const newComps = prev.map((c, i) => (i === editIdx ? updatedComponent : c));
+        console.log("[DEBUG] Components after edit:", newComps);
+        return newComps;
+      });
       setEditIdx(null);
     } else {
-      setComponents([
-        ...components,
-        updatedComponent
-      ]);
+      setComponents(prev => {
+        const newComps = [...prev, updatedComponent];
+        console.log("[DEBUG] Components after add:", newComps);
+        return newComps;
+      });
     }
     setTagForm(null);
     setTagInput({ name: "", category: "", notes: "", link: "", imageFile: null, imagePreview: null, image_url: null });
