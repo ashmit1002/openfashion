@@ -261,30 +261,58 @@ export default function EditOutfitPage() {
     e.preventDefault();
     setSaving(true);
     try {
+      console.log("[DEBUG] Starting save process...");
+      console.log("[DEBUG] Current components:", components);
+      
       // 1. Upload new image if changed, get URL
       let imageUrl = imagePreview;
       if (image) {
+        console.log("[DEBUG] Uploading new main image...");
         const formData = new FormData();
         formData.append("file", image);
         const res = await api.post("/upload/upload-thumbnail", formData, { headers: { "Content-Type": "multipart/form-data" } });
         imageUrl = res.data.url;
+        console.log("[DEBUG] New main image URL:", imageUrl);
       }
-      // 2. For each component, upload new image if needed and set image_url
-      const updatedComponents = await Promise.all(components.map(async (comp) => {
+      
+      // 2. For each component, only upload if it has a new imageFile and no image_url
+      const updatedComponents = await Promise.all(components.map(async (comp, index) => {
+        console.log(`[DEBUG] Processing component ${index}:`, comp);
+        
+        // If component already has image_url, keep it
+        if (comp.image_url && !comp.imageFile) {
+          console.log(`[DEBUG] Component ${index} already has image_url:`, comp.image_url);
+          return comp;
+        }
+        
+        // If component has a new imageFile, upload it
         if (comp.imageFile) {
+          console.log(`[DEBUG] Uploading new image for component ${index}...`);
           const formData = new FormData();
           formData.append("file", comp.imageFile);
           const res = await api.post("/upload/upload-thumbnail", formData, { headers: { "Content-Type": "multipart/form-data" } });
-          return { ...comp, image_url: res.data.url };
+          const newComp = { ...comp, image_url: res.data.url };
+          console.log(`[DEBUG] Component ${index} new image_url:`, res.data.url);
+          return newComp;
         }
+        
+        // If component has neither, return as is
+        console.log(`[DEBUG] Component ${index} has no image to upload`);
         return comp;
       }));
+      
+      console.log("[DEBUG] Final updated components:", updatedComponents);
+      
       // 3. Update post with new image_url and caption
       await api.put(`/closet/outfit/${postId}`, { caption, image_url: imageUrl });
+      
       // 4. Replace all components at once
       await api.put(`/closet/outfit/${postId}/replace-components`, updatedComponents);
+      
+      console.log("[DEBUG] Save completed successfully");
       router.push(`/closet/${postId}`);
     } catch (err) {
+      console.error("[DEBUG] Save failed:", err);
       alert("Failed to save changes.");
     } finally {
       setSaving(false);
@@ -425,19 +453,29 @@ export default function EditOutfitPage() {
             <div>
               <h2 className="text-lg font-semibold mb-2">Tagged Components</h2>
               <div className="space-y-2">
-                {components.map((comp, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center bg-gray-50 rounded-lg px-4 py-2 shadow-sm gap-4"
-                    onMouseEnter={() => setHoveredIdx(idx)}
-                    onMouseLeave={() => setHoveredIdx(null)}
-                  >
-                    {/* Always show image_url if present */}
-                    {comp.image_url ? (
-                      <img src={comp.image_url} alt="Component" className="w-12 h-12 object-cover rounded border border-gray-200 bg-white" />
-                    ) : (
-                      <div className="w-12 h-12 rounded bg-gray-200 border border-gray-200 flex items-center justify-center text-xs text-gray-400">No Image</div>
-                    )}
+                {components.map((comp, idx) => {
+                  console.log(`[DEBUG] Rendering component ${idx}:`, comp);
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center bg-gray-50 rounded-lg px-4 py-2 shadow-sm gap-4"
+                      onMouseEnter={() => setHoveredIdx(idx)}
+                      onMouseLeave={() => setHoveredIdx(null)}
+                    >
+                      {/* Always show image_url if present */}
+                      {comp.image_url ? (
+                        <img 
+                          src={comp.image_url} 
+                          alt="Component" 
+                          className="w-12 h-12 object-cover rounded border border-gray-200 bg-white"
+                          onError={(e) => console.error(`[DEBUG] Image failed to load for component ${idx}:`, comp.image_url, e)}
+                          onLoad={() => console.log(`[DEBUG] Image loaded successfully for component ${idx}:`, comp.image_url)}
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded bg-gray-200 border border-gray-200 flex items-center justify-center text-xs text-gray-400">
+                          No Image
+                        </div>
+                      )}
                     <div className="flex-1">
                       <div className="font-semibold">{comp.name} <span className="text-gray-500">({comp.category})</span></div>
                       {comp.notes && <div className="text-gray-400 text-sm">{comp.notes}</div>}
@@ -458,7 +496,8 @@ export default function EditOutfitPage() {
                     }} className="mr-2">Edit</Button>
                     <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveTag(idx)} className="text-meta-pink">Remove</Button>
                   </div>
-                ))}
+                );
+                })}
               </div>
             </div>
             <Button type="submit" className="w-full bg-meta-pink text-white py-3 rounded-xl text-lg font-bold shadow-lg hover:bg-meta-pink/90" disabled={saving}>
