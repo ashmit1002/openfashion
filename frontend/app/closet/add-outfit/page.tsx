@@ -130,18 +130,30 @@ export default function AddOutfitPage() {
     if (!tagForm) return;
     let imageUrl = null;
     let imageFile = null;
-    if (imagePreview) {
+
+    if (tagInput.imageFile) {
+      // User uploaded an image for the component: use this as the dominant image
+      const formData = new FormData();
+      formData.append("file", tagInput.imageFile);
+      const res = await api.post("/upload/upload-thumbnail", formData, { headers: { "Content-Type": "multipart/form-data" } });
+      imageUrl = res.data.url;
+      imageFile = tagInput.imageFile;
+    } else if (imagePreview) {
+      // No uploaded image: crop the region from the main image and upload
       const { url, file } = await cropAndUploadRegion(imagePreview, tagForm);
       imageUrl = url;
       imageFile = file;
     }
+
     setComponents([
       ...components,
-      tagForm ? { ...tagInput, region: tagForm, imagePreview: imageUrl, imageFile } : { ...tagInput, imagePreview: imageUrl, imageFile }
+      tagForm
+        ? { ...tagInput, region: tagForm, imagePreview: imageUrl, imageFile }
+        : { ...tagInput, imagePreview: imageUrl, imageFile }
     ]);
     setTagForm(null);
     setTagInput({ name: "", category: "", notes: "", link: "", imageFile: null, imagePreview: null });
-  }
+  };
 
   // Remove a tag
   const handleRemoveTag = (idx: number) => {
