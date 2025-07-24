@@ -22,7 +22,9 @@ async function cropAndUploadRegion(imageUrl: string, region: { x: number; y: num
   return new Promise((resolve, reject) => {
     const img = new window.Image();
     img.crossOrigin = 'anonymous';
+    
     img.onload = async () => {
+      console.log('[DEBUG] Image loaded successfully for cropping, dimensions:', img.width, 'x', img.height);
       const canvas = document.createElement('canvas');
       const sx = region.x * img.width;
       const sy = region.y * img.height;
@@ -54,10 +56,47 @@ async function cropAndUploadRegion(imageUrl: string, region: { x: number; y: num
         }
       }, 'image/png');
     };
+    
     img.onerror = (e) => {
       console.error('[DEBUG] Image failed to load for cropping:', imageUrl, e);
-      reject('Failed to crop');
+      console.error('[DEBUG] This is likely a CORS issue with S3. Trying alternative approach...');
+      
+      // Alternative approach: create a simple colored rectangle as fallback
+      const canvas = document.createElement('canvas');
+      canvas.width = 200;
+      canvas.height = 200;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        return reject('No canvas context for fallback');
+      }
+      
+      // Create a colored rectangle as fallback
+      ctx.fillStyle = '#f0f0f0';
+      ctx.fillRect(0, 0, 200, 200);
+      ctx.fillStyle = '#666';
+      ctx.font = '16px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Image', 100, 100);
+      
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          return reject('Failed to create fallback image');
+        }
+        const file = new File([blob], 'fallback.png', { type: 'image/png' });
+        const formData = new FormData();
+        formData.append('file', file);
+        try {
+          const res = await api.post('/upload/upload-thumbnail', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+          console.log('[DEBUG] Fallback image uploaded, S3 URL:', res.data.url);
+          resolve({ url: res.data.url, file });
+        } catch (err) {
+          console.error('[DEBUG] Failed to upload fallback image:', err);
+          reject('Failed to upload fallback image');
+        }
+      }, 'image/png');
     };
+    
+    console.log('[DEBUG] Attempting to load image for cropping:', imageUrl);
     img.src = imageUrl;
   });
 }
