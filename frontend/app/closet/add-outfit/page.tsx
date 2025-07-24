@@ -177,6 +177,28 @@ export default function AddOutfitPage() {
       for (const comp of components) {
         await api.post(`/closet/outfit/${postId}/add-component`, comp)
       }
+      // 3. Automatically add each tagged component to the user's closet
+      for (const comp of components) {
+        try {
+          const closetForm = new FormData();
+          closetForm.append("name", comp.name);
+          closetForm.append("category", comp.category);
+          closetForm.append("price", "N/A");
+          closetForm.append("link", comp.link || "");
+          if (comp.imageFile) {
+            closetForm.append("thumbnail", comp.imageFile);
+          } else if (comp.image_url) {
+            const response = await fetch(comp.image_url);
+            const blob = await response.blob();
+            closetForm.append("thumbnail", new File([blob], "component.jpg", { type: blob.type }));
+          }
+          await api.post("/closet/add", closetForm, {
+            headers: { "Content-Type": "multipart/form-data" }
+          });
+        } catch (err) {
+          console.error("Failed to add component to closet:", comp, err);
+        }
+      }
       router.push("/closet")
     } catch (err) {
       alert("Failed to create outfit post.")
