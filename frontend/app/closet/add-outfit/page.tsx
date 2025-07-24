@@ -13,6 +13,7 @@ interface OutfitComponentInput {
   link?: string
   imageFile?: File | null
   imagePreview?: string | null
+  image_url?: string | null
   position?: { x: number; y: number } // keep for backward compatibility
   region?: { x: number; y: number; width: number; height: number }
 }
@@ -41,6 +42,7 @@ export default function AddOutfitPage() {
     link?: string
     imageFile?: File | null
     imagePreview?: string | null
+    image_url?: string | null
     position?: { x: number; y: number } // keep for backward compatibility
     region?: { x: number; y: number; width: number; height: number }
   }
@@ -148,8 +150,8 @@ export default function AddOutfitPage() {
     setComponents([
       ...components,
       tagForm
-        ? { ...tagInput, region: tagForm, imagePreview: imageUrl, imageFile }
-        : { ...tagInput, imagePreview: imageUrl, imageFile }
+        ? { ...tagInput, region: tagForm, imagePreview: imageUrl, imageFile, image_url: imageUrl }
+        : { ...tagInput, imagePreview: imageUrl, imageFile, image_url: imageUrl }
     ]);
     setTagForm(null);
     setTagInput({ name: "", category: "", notes: "", link: "", imageFile: null, imagePreview: null });
