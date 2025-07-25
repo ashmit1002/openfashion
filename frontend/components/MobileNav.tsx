@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Heart, User2, Shirt, MessageCircle, Clock } from "lucide-react";
+import { Home, Search, Heart, User2, Shirt, MessageCircle, Clock, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
@@ -18,6 +18,7 @@ export default function MobileNav() {
   // Add chat and analysis jobs items if user is logged in
   const allNavItems = user ? [
     ...navItems, 
+    { href: "/fashion-search", icon: Sparkles, label: "Search" },
     { href: "/chat", icon: MessageCircle, label: "Chat" },
     { href: "/analysis-jobs", icon: Clock, label: "History" }
   ] : navItems;

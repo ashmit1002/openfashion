@@ -10,16 +10,49 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { User, Settings, LogOut, Book, Crown, Sparkles, XCircle } from "lucide-react"
+import { User, Settings, LogOut, Book, Crown, Sparkles, XCircle, Search, Trash2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { subscription } from "@/lib/api"
+import api from "@/lib/api"
+import { useState, useEffect } from "react"
+import { useSearchLimit } from "@/contexts/SearchLimitContext"
 
 export function UserAccountButton() {
   const { user, logout, refreshUser } = useAuth()
   const router = useRouter()
+  const { searchLimit, updateSearchLimit } = useSearchLimit()
+
+  // Fetch search limit when component mounts and listen for updates
+  useEffect(() => {
+    const fetchSearchLimit = async () => {
+      if (user) {
+        try {
+          const response = await api.get('/fashion/fashion-search/limit')
+          updateSearchLimit(response.data)
+        } catch (error) {
+          console.error('Failed to fetch search limit:', error)
+        }
+      }
+    }
+
+    const handleSearchLimitUpdate = (event: CustomEvent) => {
+      console.log('UserAccountButton received searchLimitUpdated event:', event.detail);
+      updateSearchLimit(event.detail)
+    }
+
+    // Fetch initial limit
+    fetchSearchLimit()
+
+    // Listen for updates from other components
+    window.addEventListener('searchLimitUpdated', handleSearchLimitUpdate as EventListener)
+    
+    return () => {
+      window.removeEventListener('searchLimitUpdated', handleSearchLimitUpdate as EventListener)
+    }
+  }, [user]) // Only depend on user, not updateSearchLimit
 
   if (!user) {
     return (
@@ -34,6 +67,19 @@ export function UserAccountButton() {
   const handleLogout = async () => {
     await logout()
     router.push('/')
+  }
+
+  const handleDeleteAccount = async () => {
+    if (confirm('Are you sure you want to delete your account? This action cannot be undone and will permanently delete all your data including your closet, wishlist, and profile.')) {
+      try {
+        await api.delete('/users/account')
+        toast.success('Account deleted successfully')
+        await logout()
+        router.push('/')
+      } catch (error: any) {
+        toast.error(error.response?.data?.detail || 'Failed to delete account')
+      }
+    }
   }
 
   const isPremium = user.subscription_status === 'premium'
@@ -91,8 +137,11 @@ export function UserAccountButton() {
             </div>
             <p className="text-xs text-gray-500">@{user.username}</p>
             {!isPremium && (
-              <div className="text-xs text-gray-400 mt-1">
-                {user.weekly_uploads_used}/3 uploads this week
+              <div className="text-xs text-gray-400 mt-1 space-y-1">
+                <div>{user.weekly_uploads_used}/3 uploads this week</div>
+                {searchLimit && (
+                  <div>{searchLimit.used}/{searchLimit.limit} searches this week</div>
+                )}
               </div>
             )}
           </div>
@@ -150,6 +199,11 @@ export function UserAccountButton() {
         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
           <span>Logout</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleDeleteAccount} className="cursor-pointer text-red-600 hover:text-red-700">
+          <Trash2 className="mr-2 h-4 w-4" />
+          <span>Delete Account</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { Search, MessageCircle } from "lucide-react"
+import { Search, MessageCircle, Sparkles } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import UserSearchDropdown from "@/components/UserSearchDropdown"
 
@@ -16,6 +16,10 @@ export function NavLinks() {
       <Link href="/explore" className="px-3 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors">Explore</Link>
       {user && (
         <>
+          <Link href="/fashion-search" className="px-3 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors flex items-center space-x-1">
+            <Sparkles className="w-4 h-4" />
+            <span>Fashion Search</span>
+          </Link>
           <Link href="/chat" className="px-3 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors flex items-center space-x-1">
             <MessageCircle className="w-4 h-4" />
             <span>Style Chat</span>

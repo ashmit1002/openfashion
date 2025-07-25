@@ -187,4 +187,76 @@ async def get_style_chat_profile(user_id: str = Depends(get_current_user_id)):
         profile = await style_chatbot.get_user_style_profile(user_id=user_id)
         return convert_objectid(profile)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get profile: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Failed to get profile: {str(e)}")
+
+@router.delete("/account")
+async def delete_account(user_id: str = Depends(get_current_user_id)):
+    """
+    Delete user account and all associated data.
+    """
+    try:
+        # Import collections
+        from app.database import (
+            users_collection, 
+            closets_collection, 
+            wishlist_collection,
+            style_profiles_collection,
+            style_quizzes_collection,
+            analysis_jobs_collection
+        )
+        
+        # Get user details first
+        user = users_collection.find_one({"email": user_id})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Delete user's closet items from S3
+        try:
+            from app.services.s3_service import delete_user_closet_from_s3
+            delete_user_closet_from_s3(user_id)
+        except Exception as e:
+            print(f"Failed to delete closet from S3: {e}")
+        
+        # Delete user's wishlist items from S3
+        try:
+            from app.services.s3_service import delete_user_wishlist_from_s3
+            delete_user_wishlist_from_s3(user_id)
+        except Exception as e:
+            print(f"Failed to delete wishlist from S3: {e}")
+        
+        # Delete user's uploaded files from S3
+        try:
+            from app.services.s3_service import delete_user_uploads_from_s3
+            delete_user_uploads_from_s3(user_id)
+        except Exception as e:
+            print(f"Failed to delete uploads from S3: {e}")
+        
+        # Delete user's data from all collections
+        users_collection.delete_one({"email": user_id})
+        closets_collection.delete_many({"user_id": user_id})
+        wishlist_collection.delete_many({"user_id": user_id})
+        style_profiles_collection.delete_many({"user_id": user_id})
+        style_quizzes_collection.delete_many({"user_id": user_id})
+        analysis_jobs_collection.delete_many({"user_id": user_id})
+        
+        # Cancel Stripe subscription if exists
+        if user.get("stripe_subscription_id"):
+            try:
+                import stripe
+                from app.config.settings import settings
+                stripe.api_key = settings.STRIPE_SECRET_KEY
+                stripe.Subscription.modify(
+                    user["stripe_subscription_id"],
+                    cancel_at_period_end=True
+                )
+            except Exception as e:
+                print(f"Failed to cancel Stripe subscription: {e}")
+        
+        print(f"Account deleted for user: {user_id}")
+        return {"message": "Account deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Failed to delete account for {user_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete account: {str(e)}") 

@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routes import upload, closet, wishlist
+from app.routes import upload, closet, wishlist, fashion_search
 from app.auth.routes import router as auth_router
 from app.routes.users import router as users_router
 from app.routes.subscription import router as subscription_router
@@ -39,6 +39,9 @@ app.include_router(subscription_router, prefix="/api/subscription", tags=["Subsc
 app.include_router(
     style_quiz_router, prefix="/api/style", tags=["Style"]
 )  # Style Quiz & Recommendations
+app.include_router(
+    fashion_search.router, prefix="/api/fashion", tags=["Fashion Search"]
+)  # Fashion Search
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
