@@ -112,28 +112,12 @@ export default function Home() {
           <p className="text-lg text-gray-600 mb-8">
             Upload an image to find similar fashion items
           </p>
-          <div className="space-y-4">
-            <button
-              onClick={() => setIsUploaderOpen(true)}
-              className="bg-meta-pink hover:bg-meta-pink/90 text-white px-6 py-3 rounded-full font-medium shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              Upload Image
-            </button>
-            
-            {/* Analytics Test Button - Remove this after testing */}
-            <button
-              onClick={() => {
-                trackCustomEvent('analytics_test', {
-                  test_type: 'homepage_button_click',
-                  timestamp: new Date().toISOString()
-                })
-                alert('Analytics test event sent! Check Google Analytics Real-time reports.')
-              }}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300"
-            >
-              Test Analytics
-            </button>
-          </div>
+          <button
+            onClick={() => setIsUploaderOpen(true)}
+            className="bg-meta-pink hover:bg-meta-pink/90 text-white px-6 py-3 rounded-full font-medium shadow-lg hover:shadow-xl transition-all duration-300"
+          >
+            Upload Image
+          </button>
         </motion.div>
 
         {isUploaderOpen && (
