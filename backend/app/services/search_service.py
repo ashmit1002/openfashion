@@ -89,7 +89,7 @@ def get_shopping_results_from_serpapi(query: str, num_results: int = 10):
         for item in shopping_results:
             items.append({
                 "title": item.get("title"),
-                "link": item.get("link"),
+                "link": item.get("link") or item.get("product_link"),
                 "price": item.get("price"),
                 "thumbnail": item.get("thumbnail"),
                 "source": item.get("source") or item.get("store")
@@ -133,7 +133,7 @@ def get_google_shopping_light_results(query: str, num_results: int = 10):
         for item in shopping_results:
             items.append({
                 "title": item.get("title"),
-                "link": item.get("link") or item.get("tracking_link"),
+                "link": item.get("link") or item.get("product_link"),
                 "price": item.get("price"),
                 "thumbnail": item.get("thumbnail"),
                 "source": item.get("source"),
