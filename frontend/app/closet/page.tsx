@@ -55,6 +55,19 @@ interface OutfitPost {
   components: OutfitComponent[]
 }
 
+// Wishlist item interface
+interface WishlistItem {
+  _id: string;
+  title: string;
+  category: string;
+  price: number;
+  link: string;
+  thumbnail: string;
+  likes: number;
+  saves: number;
+  tags: string[];
+}
+
 export default function ClosetPage() {
   const [components, setComponents] = useState<ComponentGroup[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string>("All")
@@ -70,9 +83,12 @@ export default function ClosetPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Tab state
-  const [tab, setTab] = useState<'outfits' | 'closet'>('outfits')
+  type ClosetTab = 'outfits' | 'closet' | 'wishlist';
+  const [tab, setTab] = useState<ClosetTab>('outfits')
   const [outfitPosts, setOutfitPosts] = useState<OutfitPost[]>([])
   const [loadingOutfits, setLoadingOutfits] = useState(true)
+  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
+  const [loadingWishlist, setLoadingWishlist] = useState(false);
 
   // Fetch closet
   const fetchCloset = async () => {
@@ -115,12 +131,36 @@ export default function ClosetPage() {
     }
   }
 
+  // Fetch wishlist items
+  const fetchWishlistItems = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return router.push('/login');
+    setAuthToken(token);
+    setLoadingWishlist(true);
+    try {
+      const response = await api.get('/wishlist/');
+      setWishlistItems(response.data);
+    } catch (error) {
+      console.error('Error fetching wishlist:', error);
+    } finally {
+      setLoadingWishlist(false);
+    }
+  };
+
   useEffect(() => {
     fetchCloset()
     fetchProfile()
     fetchOutfitPosts()
     // eslint-disable-next-line
   }, [user])
+
+  // Fetch wishlist items when tab changes to wishlist
+  useEffect(() => {
+    if (tab === 'wishlist') {
+      fetchWishlistItems();
+    }
+    // eslint-disable-next-line
+  }, [tab]);
 
   const getAllItems = (): ClothingItem[] => {
     return components.flatMap(group =>
@@ -302,6 +342,12 @@ export default function ClosetPage() {
         >
           Closet Items
         </button>
+        <button
+          className={`px-4 py-2 rounded-full font-semibold ${tab === 'wishlist' ? 'bg-meta-pink text-white' : 'bg-gray-100 text-gray-800'}`}
+          onClick={() => setTab('wishlist')}
+        >
+          Wishlist
+        </button>
         {tab === 'outfits' && (
           <Button
             className="ml-auto bg-meta-pink hover:bg-meta-pink/90 text-white px-6 py-2 rounded-full shadow-md"
@@ -365,99 +411,152 @@ export default function ClosetPage() {
           </div>
         )
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-12">
-          {/* Left Column: Pinterest-style Masonry Grid, now more airy and modern */}
-          <div>
-            <div className="flex justify-between items-center mb-10">
-              <h1 className="text-3xl font-extrabold tracking-tight">Your Closet</h1>
-              <Button
-                className="bg-meta-pink hover:bg-meta-pink/90 text-white px-6 py-2 rounded-full shadow-md"
-                onClick={() => router.push("/add-item")}
-              >
-                + Add Item
-              </Button>
-            </div>
-            {loading ? (
-              <p className="text-gray-400 text-lg">Loading your closet...</p>
-            ) : (
-              <div className="[column-count:1] sm:[column-count:2] lg:[column-count:3] xl:[column-count:4] [column-gap:2.5rem]">
-                {getAllItems().map((item, index) => (
-                  <div
-                    key={index}
-                    className="mb-10 break-inside-avoid rounded-3xl shadow-xl bg-white overflow-hidden group relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
-                    style={{ minHeight: 320 }}
-                  >
-                    <div className="relative w-full aspect-[3/4] bg-gray-100">
-                      <Image
-                        src={item.thumbnail || "/placeholder.svg"}
-                        alt={item.name}
-                        fill
-                        className="object-cover rounded-3xl"
-                      />
-                      <div className="absolute bottom-0 left-0 right-0 px-5 py-4 flex flex-col gap-1"
-                        style={{
-                          background: 'rgba(255,255,255,0.35)',
-                          backdropFilter: 'blur(12px)',
-                          borderBottomLeftRadius: '1.5rem',
-                          borderBottomRightRadius: '1.5rem',
-                        }}
-                      >
-                        <div className="text-gray-900 font-bold text-lg truncate drop-shadow-sm">{item.name}</div>
-                        <div className="text-meta-pink font-extrabold text-base drop-shadow-sm">{item.price}</div>
+        tab === 'closet' ? (
+          <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-12">
+            {/* Left Column: Pinterest-style Masonry Grid, now more airy and modern */}
+            <div>
+              <div className="flex justify-between items-center mb-10">
+                <h1 className="text-3xl font-extrabold tracking-tight">Your Closet</h1>
+                <Button
+                  className="bg-meta-pink hover:bg-meta-pink/90 text-white px-6 py-2 rounded-full shadow-md"
+                  onClick={() => router.push("/add-item")}
+                >
+                  + Add Item
+                </Button>
+              </div>
+              {loading ? (
+                <p className="text-gray-400 text-lg">Loading your closet...</p>
+              ) : (
+                <div className="[column-count:1] sm:[column-count:2] lg:[column-count:3] xl:[column-count:4] [column-gap:2.5rem]">
+                  {getAllItems().map((item, index) => (
+                    <div
+                      key={index}
+                      className="mb-10 break-inside-avoid rounded-3xl shadow-xl bg-white overflow-hidden group relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
+                      style={{ minHeight: 320 }}
+                    >
+                      <div className="relative w-full aspect-[3/4] bg-gray-100">
+                        <Image
+                          src={item.thumbnail || "/placeholder.svg"}
+                          alt={item.name}
+                          fill
+                          className="object-cover rounded-3xl"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 px-5 py-4 flex flex-col gap-1"
+                          style={{
+                            background: 'rgba(255,255,255,0.35)',
+                            backdropFilter: 'blur(12px)',
+                            borderBottomLeftRadius: '1.5rem',
+                            borderBottomRightRadius: '1.5rem',
+                          }}
+                        >
+                          <div className="text-gray-900 font-bold text-lg truncate drop-shadow-sm">{item.name}</div>
+                          <div className="text-meta-pink font-extrabold text-base drop-shadow-sm">{item.price}</div>
+                        </div>
+                      </div>
+                      {/* Actions: hidden until hover */}
+                      <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                        <a
+                          href={item.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-white/80 hover:bg-meta-pink text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
+                          title="View product"
+                        >
+                          <ExternalLink className="h-5 w-5" />
+                        </a>
+                        <button
+                          onClick={() => router.push(`/edit-item?id=${encodeURIComponent(item._id)}&title=${encodeURIComponent(item.name)}&category=${encodeURIComponent(item.category)}&price=${encodeURIComponent(item.price)}&link=${encodeURIComponent(item.link)}&thumbnail=${encodeURIComponent(item.thumbnail)}`)}
+                          className="bg-white/80 hover:bg-blue-600 text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 className="h-5 w-5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item._id)}
+                          className="bg-white/80 hover:bg-red-600 text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
                       </div>
                     </div>
-                    {/* Actions: hidden until hover */}
-                    <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                      <a
-                        href={item.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="bg-white/80 hover:bg-meta-pink text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
-                        title="View product"
-                      >
-                        <ExternalLink className="h-5 w-5" />
-                      </a>
-                      <button
-                        onClick={() => router.push(`/edit-item?id=${encodeURIComponent(item._id)}&title=${encodeURIComponent(item.name)}&category=${encodeURIComponent(item.category)}&price=${encodeURIComponent(item.price)}&link=${encodeURIComponent(item.link)}&thumbnail=${encodeURIComponent(item.thumbnail)}`)}
-                        className="bg-white/80 hover:bg-blue-600 text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
-                        title="Edit"
-                      >
-                        <Edit2 className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item._id)}
-                        className="bg-white/80 hover:bg-red-600 text-gray-700 hover:text-white rounded-full p-2 shadow-md transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Right Column: Filters */}
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold text-gray-800">Categories</h2>
+              <div className="space-y-2">
+                {allCategories.map((cat, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`block text-left w-full text-sm px-4 py-2 rounded-md ${
+                      selectedCategory === cat
+                        ? "bg-meta-pink text-white"
+                        : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          tab === 'wishlist' && (
+            loadingWishlist ? (
+              <p className="text-gray-400 text-lg">Loading wishlist...</p>
+            ) : wishlistItems.length === 0 ? (
+              <p>Your wishlist is empty. Start adding items you love!</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {wishlistItems.map((item) => (
+                  <div key={item._id} className="overflow-hidden rounded-3xl shadow-xl bg-white">
+                    <div className="relative aspect-square">
+                      <Image
+                        src={item.thumbnail}
+                        alt={item.title}
+                        fill
+                        className="object-cover rounded-t-3xl"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-semibold truncate">{item.title}</h3>
+                      <p className="text-sm text-gray-500">{item.category}</p>
+                      <p className="font-medium mt-1">${item.price}</p>
+                      <div className="mt-2 flex gap-2 flex-wrap">
+                        {item.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="text-xs bg-gray-100 px-2 py-1 rounded-full"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="mt-3 flex justify-between items-center">
+                        <div className="text-sm text-gray-500">
+                          {item.likes} likes · {item.saves} saves
+                        </div>
+                        <a
+                          href={item.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          View Item →
+                        </a>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-
-          {/* Right Column: Filters */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-800">Categories</h2>
-            <div className="space-y-2">
-              {allCategories.map((cat, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`block text-left w-full text-sm px-4 py-2 rounded-md ${
-                    selectedCategory === cat
-                      ? "bg-meta-pink text-white"
-                      : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+            )
+          )
+        )
       )}
     </div>
   )

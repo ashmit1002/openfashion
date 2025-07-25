@@ -13,13 +13,15 @@ export function NavLinks() {
       <div className="flex items-center space-x-1">
       <Link href="/" className="px-3 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors">Home</Link>
       <Link href="/closet" className="px-3 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors">My Closet</Link>
-      <Link href="/wishlist" className="px-3 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors">Wishlist</Link>
       <Link href="/explore" className="px-3 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors">Explore</Link>
       {user && (
-        <Link href="/chat" className="px-3 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors flex items-center space-x-1">
-          <MessageCircle className="w-4 h-4" />
-          <span>Style Chat</span>
-        </Link>
+        <>
+          <Link href="/chat" className="px-3 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors flex items-center space-x-1">
+            <MessageCircle className="w-4 h-4" />
+            <span>Style Chat</span>
+          </Link>
+          <Link href="/analysis-jobs" className="px-3 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors">Analysis History</Link>
+        </>
       )}
       </div>
       {/* Center: Search bar */}

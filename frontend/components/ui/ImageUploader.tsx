@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Upload, Camera, X, Crown, AlertCircle } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Upload, Camera, X, Crown, AlertCircle, Clock, CheckCircle, AlertTriangle } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
@@ -24,6 +24,15 @@ interface AnalysisResult {
   }>
 }
 
+interface JobStatus {
+  job_id: string
+  status: "pending" | "processing" | "completed" | "failed"
+  result?: AnalysisResult
+  error?: string
+  created_at: string
+  updated_at: string
+}
+
 interface ImageUploaderProps {
   onAnalysisComplete: (result: AnalysisResult) => void
 }
@@ -37,12 +46,70 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
   const [showCropper, setShowCropper] = useState(false)
   const [cropperImage, setCropperImage] = useState<string | null>(null)
   const [aspect, setAspect] = useState<number>(3/4)
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null)
+  const [jobStatus, setJobStatus] = useState<JobStatus | null>(null)
+  const [isPolling, setIsPolling] = useState(false)
+  
   const aspectOptions = [
     { label: '1:1', value: 1 },
     { label: '3:4', value: 3/4 },
     { label: '4:3', value: 4/3 },
     { label: '16:9', value: 16/9 },
   ]
+
+  // Poll for job status
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null
+    
+    if (currentJobId && !isPolling) {
+      setIsPolling(true)
+      interval = setInterval(async () => {
+        try {
+          const token = localStorage.getItem("token")
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload/job/${currentJobId}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
+          
+          if (response.ok) {
+            const job: JobStatus = await response.json()
+            setJobStatus(job)
+            
+            if (job.status === "completed" && job.result) {
+              setIsPolling(false)
+              setCurrentJobId(null)
+              onAnalysisComplete(job.result)
+              await refreshUser?.()
+              
+              // Show success message
+              if (user && user.subscription_status === 'free') {
+                toast.success("Analysis complete!", {
+                  description: `${user.weekly_uploads_used + 1}/3 uploads used this week.`,
+                })
+              } else {
+                toast.success("Analysis complete!")
+              }
+            } else if (job.status === "failed") {
+              setIsPolling(false)
+              setCurrentJobId(null)
+              toast.error("Analysis failed", {
+                description: job.error || "Please try again."
+              })
+            }
+          }
+        } catch (error) {
+          console.error("Error polling job status:", error)
+        }
+      }, 2000) // Poll every 2 seconds
+    }
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval)
+      }
+    }
+  }, [currentJobId, isPolling, onAnalysisComplete, refreshUser, user])
 
   const handleUpload = async (file: File) => {
     if (!file) return
@@ -83,18 +150,19 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
         throw new Error(errorData.detail?.message || "Upload failed")
       }
 
-      const data: AnalysisResult = await response.json()
-      onAnalysisComplete(data)
-      await refreshUser?.()
+      const data = await response.json()
+      setCurrentJobId(data.job_id)
+      setJobStatus({
+        job_id: data.job_id,
+        status: "pending",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
       
-      // Show success message with upload count for free users
-      if (user && user.subscription_status === 'free') {
-        toast.success("Upload successful!", {
-          description: `${user.weekly_uploads_used + 1}/3 uploads used this week.`,
-        })
-      } else {
-        toast.success("Upload successful!")
-      }
+      toast.success("Image uploaded!", {
+        description: "Analysis in progress. Results will appear in the Analysis History tab. You can leave this page and return later."
+      })
+      
     } catch (error) {
       console.error("Error uploading image:", error)
       toast.error("Error uploading image. Please try again.")
@@ -155,10 +223,47 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
   const resetForm = () => {
     setSelectedFile(null)
     setPreviewUrl(null)
+    setCurrentJobId(null)
+    setJobStatus(null)
+    setIsPolling(false)
   }
 
   const isPremium = user?.subscription_status === 'premium'
   const uploadsRemaining = user ? 3 - user.weekly_uploads_used : 0
+
+  const getStatusIcon = () => {
+    if (!jobStatus) return null
+    
+    switch (jobStatus.status) {
+      case "pending":
+        return <Clock className="w-5 h-5 text-yellow-500" />
+      case "processing":
+        return <Clock className="w-5 h-5 text-blue-500 animate-spin" />
+      case "completed":
+        return <CheckCircle className="w-5 h-5 text-green-500" />
+      case "failed":
+        return <AlertTriangle className="w-5 h-5 text-red-500" />
+      default:
+        return null
+    }
+  }
+
+  const getStatusText = () => {
+    if (!jobStatus) return ""
+    
+    switch (jobStatus.status) {
+      case "pending":
+        return "Queued for analysis..."
+      case "processing":
+        return "Analyzing your image..."
+      case "completed":
+        return "Analysis complete!"
+      case "failed":
+        return "Analysis failed"
+      default:
+        return ""
+    }
+  }
 
   return (
     <div className="meta-card animate-slide-up">
@@ -263,12 +368,40 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
               </button>
             </div>
             <div className="p-4 bg-white space-y-4">
+              <div className="flex items-center gap-2 text-meta-text-secondary text-sm">
+                {getStatusIcon()}
+                <span>{getStatusText()}</span>
+              </div>
               <button
                 type="submit"
-                disabled={isUploading}
+                disabled={isUploading || (jobStatus?.status === "processing")}
                 className="meta-button w-full text-center flex justify-center items-center"
               >
                 {isUploading ? (
+                  <div className="flex items-center">
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Uploading...
+                  </div>
+                ) : jobStatus && jobStatus.status === "processing" ? (
                   <div className="flex items-center">
                     <svg
                       className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"

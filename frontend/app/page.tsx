@@ -39,6 +39,21 @@ export default function Home() {
   const [shoppingResults, setShoppingResults] = useState<ShoppingResults>({})
   const [shoppingLoading, setShoppingLoading] = useState(false)
 
+  // Check for pending analysis results on page load
+  useEffect(() => {
+    const pendingResult = localStorage.getItem("pendingAnalysisResult")
+    if (pendingResult) {
+      try {
+        const result = JSON.parse(pendingResult)
+        setAnalysisResult(result)
+        localStorage.removeItem("pendingAnalysisResult")
+      } catch (error) {
+        console.error("Error parsing pending analysis result:", error)
+        localStorage.removeItem("pendingAnalysisResult")
+      }
+    }
+  }, [])
+
   const handleAnalysisComplete = (result: AnalysisResult) => {
     setAnalysisResult(result)
     setIsUploaderOpen(false)
@@ -82,7 +97,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white">
-      <SearchBar />
+      {/* <SearchBar /> */}
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <motion.div

@@ -46,7 +46,7 @@ Respond with a JSON object containing:
 {{
     "message": "Your expert-level response (2-3 sentences max)",
     "next_questions": ["Example user question 1", "Example user question 2"],
-    "suggestions": ["Example quick user prompt 1", "Example quick user prompt 2"]
+    "suggestions": ["Example quick user prompt asking for advice from the AI fashion expert 1", "Example quick user prompt asking for advice from the AI fashion expert 2"]
 }}
 For both 'next_questions' and 'suggestions', provide example questions or prompts that a user might ask you, the fashion expert, to further the conversation. Phrase them in the first person, as if the user is asking for advice or information (e.g., "How can I add more variety to my wardrobe?" or "What are some comfortable yet stylish fabrics for summer?").
 """
@@ -135,7 +135,7 @@ Respond with a JSON object:
     "message": "Your expert-level response",
     "style_insights": {{"key_insight": "value"}},
     "next_questions": ["Example user follow-up question"],
-    "suggestions": ["Example quick user prompt"]
+    "suggestions": ["Example quick user prompt asking for advice from the AI fashion expert"]
 }}
 For both 'next_questions' and 'suggestions', provide example questions or prompts that a user might ask you, the fashion expert, to further the conversation. Phrase them in the first person, as if the user is asking for advice or information (e.g., "How can I add more variety to my wardrobe?" or "What are some comfortable yet stylish fabrics for summer?").
 """
