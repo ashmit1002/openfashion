@@ -43,9 +43,9 @@ export default async function Image() {
               boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
             }}
           >
-            {/* Actual Logo from android-chrome-512x512.png */}
+            {/* Inverted OpenFashion Logo */}
             <img
-              src="https://openfashion.vercel.app/android-chrome-512x512.png"
+              src="https://openfashion.vercel.app/inverted%20openfashion%20logo.png"
               width="80"
               height="80"
               style={{
