@@ -68,6 +68,7 @@ async def add_closet_item(
         "thumbnail": s3_url
     }
     closets_collection.insert_one(item)
+    print(f"[FASHION AGENT LEARNED] User {user_id} added closet item: {name}, {category}, {link}")
     return {"message": "Item added to closet", "item": convert_objectid(item)}
 
 @router.put("/update")
@@ -133,6 +134,7 @@ async def create_outfit_post(
     }
     result = outfit_posts_collection.insert_one(post)
     post["_id"] = str(result.inserted_id)
+    print(f"[FASHION AGENT LEARNED] User {user_id} created a new outfit post: {caption}")
     return {"message": "Outfit post created", "post": post}
 
 @router.get("/outfit/user/{username}")
@@ -192,6 +194,7 @@ def add_outfit_component(post_id: str, component: OutfitComponent, user_id: str 
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Outfit post not found or not authorized")
+    print(f"[FASHION AGENT LEARNED] User {user_id} tagged component: {component.name}, {component.category}, {getattr(component, 'image_url', None)}")
     return {"message": "Component added"}
 
 @router.put("/outfit/{post_id}/update-component/{index}")

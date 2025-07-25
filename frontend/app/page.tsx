@@ -6,7 +6,7 @@ import AnalyzedImage from '../components/ui/AnalyzedImage'
 import ComponentTabs from '../components/ui/ComponentsTab'
 import { SearchBar } from '@/components/ui/SearchBar'
 import { motion } from 'framer-motion'
-import { fetchGoogleShoppingLightResults } from '@/lib/api'
+import { fetchSerpApiShoppingResults } from '@/lib/api'
 
 interface ClothingItem {
   title: string
@@ -63,7 +63,7 @@ export default function Home() {
         allQueries.map(async (query) => {
           try {
             console.log(`[Google Shopping] Fetching results for query: ${query}`)
-            results[query] = await fetchGoogleShoppingLightResults(query)
+            results[query] = await fetchSerpApiShoppingResults(query)
             console.log(`[Google Shopping] Results for "${query}":`, results[query])
           } catch (err) {
             console.error(`[Google Shopping] Error fetching results for "${query}":`, err)

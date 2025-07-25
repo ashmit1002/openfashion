@@ -45,9 +45,10 @@ Be confident, knowledgeable, and show deep understanding of their style. You're 
 Respond with a JSON object containing:
 {{
     "message": "Your expert-level response (2-3 sentences max)",
-    "next_questions": ["Strategic question 1", "Strategic question 2"],
-    "suggestions": ["Expert suggestion 1", "Expert suggestion 2"]
+    "next_questions": ["Example user question 1", "Example user question 2"],
+    "suggestions": ["Example quick user prompt 1", "Example quick user prompt 2"]
 }}
+For both 'next_questions' and 'suggestions', provide example questions or prompts that a user might ask you, the fashion expert, to further the conversation. Phrase them in the first person, as if the user is asking for advice or information (e.g., "How can I add more variety to my wardrobe?" or "What are some comfortable yet stylish fabrics for summer?").
 """
             
             response = await self.client.chat.completions.create(
@@ -133,9 +134,10 @@ Respond with a JSON object:
 {{
     "message": "Your expert-level response",
     "style_insights": {{"key_insight": "value"}},
-    "next_questions": ["Strategic follow-up question"],
-    "suggestions": ["Expert recommendation"]
+    "next_questions": ["Example user follow-up question"],
+    "suggestions": ["Example quick user prompt"]
 }}
+For both 'next_questions' and 'suggestions', provide example questions or prompts that a user might ask you, the fashion expert, to further the conversation. Phrase them in the first person, as if the user is asking for advice or information (e.g., "How can I add more variety to my wardrobe?" or "What are some comfortable yet stylish fabrics for summer?").
 """
             
             response = await self.client.chat.completions.create(

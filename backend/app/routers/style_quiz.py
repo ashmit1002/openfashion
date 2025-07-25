@@ -11,6 +11,7 @@ from app.data.style_quiz_questions import STYLE_QUIZ_QUESTIONS
 import json
 from openai import AsyncOpenAI
 from app.config.settings import settings
+from datetime import datetime
 
 router = APIRouter()
 
@@ -486,15 +487,33 @@ async def generate_search_queries(user_id: str = Depends(get_current_user_id)):
     if not style_summary:
         raise HTTPException(status_code=404, detail="Style summary not available for this user.")
 
+    # Get user's gender from quiz responses
+    quiz = style_quizzes_collection.find_one({"user_id": user_id, "completed": True})
+    user_gender = "Not specified"
+    if quiz:
+        for response in quiz.get("responses", []):
+            if response["question_id"] == "gender":
+                user_gender = response["response"]
+                break
+
     # Format style preferences for the prompt
     preferences_text = ", ".join([pref["category"] for pref in style_preferences])
 
     prompt = f"""Based on the following style summary and preferences, generate a list of 5-10 search queries related to fashion items or styles that this user might be interested in.
+
+IMPORTANT: This user's gender is {user_gender}. ALWAYS include gender-specific terms in your search queries (e.g., "men's", "women's", "men", "women") to ensure the results are appropriate for their gender.
+
 Here is a very brief description of what a user's style preferences are:
 Style Summary: {style_summary}
 Style Preferences: {preferences_text}
+User Gender: {user_gender}
 
 Use this information to create a list of 5-10 search queries that you think the user would be most interested in to help them explore and discover styles and clothes that they may like.
+
+CRITICAL REQUIREMENTS:
+- ALWAYS include the user's gender in each search query (e.g., "men's streetwear", "women's minimalist fashion")
+- Make sure all queries are gender-appropriate for {user_gender}
+- Focus on their style preferences while ensuring gender specificity
 
 Please provide the search queries in a JSON array of strings.
 [
@@ -507,7 +526,7 @@ Please provide the search queries in a JSON array of strings.
         response = await client.responses.create(
             model="gpt-4.1",
             input=[
-                {"role": "system", "content": "You are a fashion search query generator. Always respond with a valid JSON array of strings."},
+                {"role": "system", "content": "You are a fashion search query generator. Always respond with a valid JSON array of strings. ALWAYS include gender-specific terms in search queries."},
                 {"role": "user", "content": prompt}
             ]
         )

@@ -5,6 +5,7 @@ import { Upload, Camera, X, Crown, AlertCircle } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import CropperModal from './CropperModal'
 
 interface AnalysisResult {
   annotated_image_base64: string
@@ -33,6 +34,15 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const { user, refreshUser } = useAuth()
+  const [showCropper, setShowCropper] = useState(false)
+  const [cropperImage, setCropperImage] = useState<string | null>(null)
+  const [aspect, setAspect] = useState<number>(3/4)
+  const aspectOptions = [
+    { label: '1:1', value: 1 },
+    { label: '3:4', value: 3/4 },
+    { label: '4:3', value: 4/3 },
+    { label: '16:9', value: 16/9 },
+  ]
 
   const handleUpload = async (file: File) => {
     if (!file) return
@@ -114,9 +124,19 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
-      setSelectedFile(file)
-      createPreview(file)
+      const reader = new FileReader()
+      reader.onload = () => {
+        setCropperImage(reader.result as string)
+        setShowCropper(true)
+      }
+      reader.readAsDataURL(file)
     }
+  }
+
+  const handleCropComplete = (croppedBlob: Blob, croppedUrl: string) => {
+    setSelectedFile(new File([croppedBlob], 'cropped-image.png', { type: 'image/png' }))
+    setPreviewUrl(croppedUrl)
+    setShowCropper(false)
   }
 
   const createPreview = (file: File) => {
@@ -142,6 +162,31 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
 
   return (
     <div className="meta-card animate-slide-up">
+      {/* Cropper Modal */}
+      {showCropper && cropperImage && (
+        <CropperModal
+          image={cropperImage}
+          aspect={aspect}
+          open={showCropper}
+          onClose={() => setShowCropper(false)}
+          onCropComplete={handleCropComplete}
+        />
+      )}
+      {/* Aspect Ratio Selector */}
+      {showCropper && (
+        <div className="flex justify-center gap-2 mb-4">
+          {aspectOptions.map(opt => (
+            <button
+              key={opt.label}
+              className={`px-3 py-1 rounded-full border ${aspect === opt.value ? 'bg-meta-pink text-white' : 'bg-white text-meta-pink border-meta-pink'}`}
+              onClick={() => setAspect(opt.value)}
+              type="button"
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
       {/* Upload Limit Warning for Free Users */}
       {!isPremium && user && (
         <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
