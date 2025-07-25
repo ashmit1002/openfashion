@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import ImageUploader from '@/components/ui/ImageUploader'
 import AnalyzedImage from '@/components/ui/AnalyzedImage'
 import ComponentTabs from '@/components/ui/ComponentsTab'
 import { useAuth } from '@/contexts/AuthContext'
+import { fetchSerpApiShoppingResults } from '@/lib/api'
 import { 
   Sparkles, 
   Search, 
@@ -53,6 +54,7 @@ interface ShoppingResults {
 export default function Home() {
   const { user } = useAuth()
   const router = useRouter()
+  const uploadSectionRef = useRef<HTMLElement>(null)
   const [isUploaderOpen, setIsUploaderOpen] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null)
   const [shoppingResults, setShoppingResults] = useState<ShoppingResults>({})
@@ -61,6 +63,57 @@ export default function Home() {
   // Determine if user is premium
   const isPremium = user?.subscription_status === 'premium'
   const isLoggedIn = !!user
+
+  // Check for pending analysis results on page load
+  useEffect(() => {
+    const pendingResult = localStorage.getItem("pendingAnalysisResult")
+    if (pendingResult) {
+      try {
+        const result = JSON.parse(pendingResult)
+        setAnalysisResult(result)
+        localStorage.removeItem("pendingAnalysisResult")
+      } catch (error) {
+        console.error("Error parsing pending analysis result:", error)
+        localStorage.removeItem("pendingAnalysisResult")
+      }
+    }
+  }, [])
+
+  // Fetch shopping results whenever analysisResult changes
+  useEffect(() => {
+    if (!analysisResult) return
+
+    const fetchShoppingResults = async () => {
+      setShoppingLoading(true)
+      const results: ShoppingResults = {}
+      
+      // Get all similar queries from all components
+      const allQueries = analysisResult.components
+        .flatMap(component => component.similar_queries || [])
+        .filter(Boolean)
+
+      console.log('[Google Shopping] Starting fetch for queries:', allQueries)
+
+      await Promise.all(
+        allQueries.map(async (query) => {
+          try {
+            console.log(`[Google Shopping] Fetching results for query: ${query}`)
+            results[query] = await fetchSerpApiShoppingResults(query)
+            console.log(`[Google Shopping] Results for "${query}":`, results[query])
+          } catch (err) {
+            console.error(`[Google Shopping] Error fetching results for "${query}":`, err)
+            results[query] = []
+          }
+        })
+      )
+
+      setShoppingResults(results)
+      setShoppingLoading(false)
+      console.log('[Google Shopping] Final shoppingResults state:', results)
+    }
+
+    fetchShoppingResults()
+  }, [analysisResult])
 
   // Authentication check function
   const requireAuth = (action: () => void) => {
@@ -71,40 +124,18 @@ export default function Home() {
     action()
   }
 
+  // Scroll to upload section
+  const scrollToUploadSection = () => {
+    uploadSectionRef.current?.scrollIntoView({ 
+      behavior: 'smooth',
+      block: 'start'
+    })
+  }
+
   const handleAnalysisComplete = (result: AnalysisResult) => {
     setAnalysisResult(result)
     setIsUploaderOpen(false)
-    
-    const fetchShoppingResults = async () => {
-      setShoppingLoading(true)
-      try {
-        const queries = result.components
-          .flatMap(comp => comp.similar_queries || [])
-          .slice(0, 3) // Limit to 3 queries
-
-        const results: ShoppingResults = {}
-        
-        for (const query of queries) {
-          try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/fashion-search/?query=${encodeURIComponent(query)}`)
-            if (response.ok) {
-              const data = await response.json()
-              results[query] = data.results || []
-            }
-          } catch (error) {
-            console.error(`Error fetching results for query "${query}":`, error)
-          }
-        }
-        
-        setShoppingResults(results)
-      } catch (error) {
-        console.error('Error fetching shopping results:', error)
-      } finally {
-        setShoppingLoading(false)
-      }
-    }
-
-    fetchShoppingResults()
+    // Shopping results will be fetched automatically by the useEffect when analysisResult changes
   }
 
   return (
@@ -163,7 +194,10 @@ export default function Home() {
               className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
             >
               <button
-                onClick={() => requireAuth(() => setIsUploaderOpen(true))}
+                onClick={() => requireAuth(() => {
+                  scrollToUploadSection()
+                  setIsUploaderOpen(true)
+                })}
                 className="group bg-meta-pink hover:bg-meta-pink/90 text-white px-8 py-4 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center"
               >
                 <Upload className="w-5 h-5 mr-2 group-hover:animate-bounce" />
@@ -180,9 +214,9 @@ export default function Home() {
             </motion.div>
             
             {/* Trust Signals */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.8 }}
               className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-500"
             >
@@ -226,7 +260,10 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               className="group text-center p-8 rounded-2xl bg-white hover:bg-gray-50 transition-all duration-300 shadow-sm hover:shadow-lg border border-gray-100 cursor-pointer"
-              onClick={() => requireAuth(() => setIsUploaderOpen(true))}
+              onClick={() => requireAuth(() => {
+                scrollToUploadSection()
+                setIsUploaderOpen(true)
+              })}
             >
               <div className="w-20 h-20 bg-gradient-to-br from-meta-pink/10 to-pink-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
                 <Search className="w-10 h-10 text-meta-pink" />
@@ -390,13 +427,16 @@ export default function Home() {
                 </ul>
                 
                 <button
-                  onClick={() => requireAuth(() => setIsUploaderOpen(true))}
+                  onClick={() => requireAuth(() => {
+                    scrollToUploadSection()
+                    setIsUploaderOpen(true)
+                  })}
                   className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold py-3 px-6 rounded-full transition-colors"
                 >
                   Get Started Free
-                </button>
-              </motion.div>
-              
+          </button>
+        </motion.div>
+
               {/* Premium Plan */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
@@ -452,7 +492,7 @@ export default function Home() {
       )}
 
       {/* Upload Section */}
-      <section className="py-20 bg-gradient-to-br from-meta-pink/5 to-blue-50/30">
+      <section ref={uploadSectionRef} className="py-20 bg-gradient-to-br from-meta-pink/5 to-blue-50/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -509,73 +549,73 @@ export default function Home() {
       </section>
 
       {/* Results Section */}
-      {analysisResult && (
+        {analysisResult && (
         <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="space-y-12">
-              <div className="bg-gray-50 rounded-2xl p-8">
-                <h2 className="text-2xl font-semibold mb-6">Analysis Results</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                  <div className="lg:sticky lg:top-8">
-                    <AnalyzedImage imageData={analysisResult.annotated_image_base64} />
-                  </div>
-                  <ComponentTabs components={analysisResult.components} />
+          <div className="space-y-12">
+            <div className="bg-gray-50 rounded-2xl p-8">
+              <h2 className="text-2xl font-semibold mb-6">Analysis Results</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                <div className="lg:sticky lg:top-8">
+                  <AnalyzedImage imageData={analysisResult.annotated_image_base64} />
                 </div>
-              </div>
-
-              {/* Google Shopping Results */}
-              <div>
-                <h2 className="text-2xl font-semibold mb-6">Google Shopping Results</h2>
-                <p className="text-gray-600 mb-4">Similar items found using AI-generated search queries</p>
-                
-                {shoppingLoading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-meta-pink mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading shopping results...</p>
-                  </div>
-                ) : Object.keys(shoppingResults).length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {Object.values(shoppingResults)
-                      .flat()
-                      .filter((product: any) => product.title || product.link)
-                      .map((product: any, idx: number) => (
-                        <a
-                          key={product.link || product.title || idx}
-                          href={product.link || '#'}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="bg-white rounded shadow p-4 block hover:shadow-lg transition-shadow border border-gray-200"
-                        >
-                          {product.thumbnail && (
-                            <img
-                              src={product.thumbnail}
-                              alt={product.title}
-                              className="w-full h-48 object-cover mb-2 rounded"
-                            />
-                          )}
-                          <h4 className="font-medium text-base mb-1 line-clamp-2">{product.title}</h4>
-                          <div className="text-sm font-semibold text-green-700 mb-1">{product.price}</div>
-                          {product.source && (
-                            <div className="text-xs text-gray-500 mb-2">{product.source}</div>
-                          )}
-                          {product.rating && (
-                            <div className="text-xs text-gray-600">
-                              ⭐ {product.rating} {product.reviews && `(${product.reviews} reviews)`}
-                            </div>
-                          )}
-                        </a>
-                      ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">No shopping results available.</p>
-                  </div>
-                )}
+                <ComponentTabs components={analysisResult.components} />
               </div>
             </div>
+
+            {/* Google Shopping Results */}
+            <div>
+              <h2 className="text-2xl font-semibold mb-6">Google Shopping Results</h2>
+              <p className="text-gray-600 mb-4">Similar items found using AI-generated search queries</p>
+              
+              {shoppingLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-meta-pink mx-auto"></div>
+                  <p className="mt-4 text-gray-600">Loading shopping results...</p>
+                </div>
+              ) : Object.keys(shoppingResults).length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {Object.values(shoppingResults)
+                    .flat()
+                    .filter((product: any) => product.title || product.link)
+                    .map((product: any, idx: number) => (
+                      <a
+                        key={product.link || product.title || idx}
+                        href={product.link || '#'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-white rounded shadow p-4 block hover:shadow-lg transition-shadow border border-gray-200"
+                      >
+                        {product.thumbnail && (
+                          <img
+                            src={product.thumbnail}
+                            alt={product.title}
+                            className="w-full h-48 object-cover mb-2 rounded"
+                          />
+                        )}
+                        <h4 className="font-medium text-base mb-1 line-clamp-2">{product.title}</h4>
+                        <div className="text-sm font-semibold text-green-700 mb-1">{product.price}</div>
+                        {product.source && (
+                          <div className="text-xs text-gray-500 mb-2">{product.source}</div>
+                        )}
+                        {product.rating && (
+                          <div className="text-xs text-gray-600">
+                            ⭐ {product.rating} {product.reviews && `(${product.reviews} reviews)`}
+                          </div>
+                        )}
+                      </a>
+                    ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No shopping results available.</p>
+                </div>
+              )}
+            </div>
+          </div>
           </div>
         </section>
-      )}
+        )}
     </main>
   )
 }
