@@ -27,25 +27,26 @@ export default async function Image() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            marginBottom: '40px',
+            justifyContent: 'center',
           }}
         >
           <div
             style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '20px',
+              width: '120px',
+              height: '120px',
+              borderRadius: '30px',
               background: 'white',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginRight: '20px',
+              marginRight: '30px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
             }}
           >
             {/* Shopping Bag Icon */}
             <svg
-              width="40"
-              height="40"
+              width="60"
+              height="60"
               viewBox="0 0 24 24"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
@@ -76,96 +77,14 @@ export default async function Image() {
           </div>
           <span
             style={{
-              fontSize: '48px',
+              fontSize: '72px',
               fontWeight: 'bold',
               color: 'white',
+              textShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
             }}
           >
             OpenFashion
           </span>
-        </div>
-
-        {/* Main Title */}
-        <h1
-          style={{
-            fontSize: '64px',
-            fontWeight: 'bold',
-            color: 'white',
-            textAlign: 'center',
-            margin: '0 0 20px 0',
-            lineHeight: '1.2',
-          }}
-        >
-          AI-Powered Fashion
-        </h1>
-        <h2
-          style={{
-            fontSize: '48px',
-            fontWeight: 'bold',
-            color: 'white',
-            textAlign: 'center',
-            margin: '0 0 40px 0',
-            lineHeight: '1.2',
-          }}
-        >
-          Analyzer & Discovery
-        </h2>
-
-        {/* Subtitle */}
-        <p
-          style={{
-            fontSize: '28px',
-            color: 'rgba(255, 255, 255, 0.9)',
-            textAlign: 'center',
-            margin: '0 0 40px 0',
-            maxWidth: '800px',
-            lineHeight: '1.4',
-          }}
-        >
-          Upload clothing images • Find similar items • Get style recommendations
-        </p>
-
-        {/* Features */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '40px',
-            marginTop: '40px',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              color: 'white',
-            }}
-          >
-            <span style={{ fontSize: '32px', marginBottom: '8px' }}>🤖</span>
-            <span style={{ fontSize: '18px', fontWeight: '600' }}>AI Analysis</span>
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              color: 'white',
-            }}
-          >
-            <span style={{ fontSize: '32px', marginBottom: '8px' }}>🔍</span>
-            <span style={{ fontSize: '18px', fontWeight: '600' }}>Image Search</span>
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              color: 'white',
-            }}
-          >
-            <span style={{ fontSize: '32px', marginBottom: '8px' }}>💡</span>
-            <span style={{ fontSize: '18px', fontWeight: '600' }}>Style Tips</span>
-          </div>
         </div>
       </div>
     ),
