@@ -141,6 +141,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                   <ShoppingBag className="h-5 w-5 text-meta-pink" />
                   <span className="font-medium ml-2">OpenFashion</span>
                 </div>
+                <div className="text-sm text-gray-500 mb-4 md:mb-0">
+                  Found a bug or feature idea? Email us at{' '}
+                  <a 
+                    href="mailto:openfashion.dev@gmail.com" 
+                    className="text-meta-pink hover:text-meta-pink/80 font-medium transition-colors"
+                  >
+                    openfashion.dev@gmail.com
+                  </a>
+                </div>
                 <div className="text-sm text-gray-500">
                   © {new Date().getFullYear()} OpenFashion. All rights reserved.
                 </div>
