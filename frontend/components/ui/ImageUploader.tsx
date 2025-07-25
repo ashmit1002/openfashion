@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import CropperModal from './CropperModal'
+import { trackImageUpload, trackAnalysisComplete, trackError } from "@/lib/analytics"
 
 interface AnalysisResult {
   annotated_image_base64: string
@@ -79,6 +80,10 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
             if (job.status === "completed" && job.result) {
               setIsPolling(false)
               setCurrentJobId(null)
+              
+              // Track analysis completion
+              trackAnalysisComplete(job.result.components.length, user?.subscription_status === 'premium')
+              
               onAnalysisComplete(job.result)
               await refreshUser?.()
               
@@ -93,6 +98,7 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
             } else if (job.status === "failed") {
               setIsPolling(false)
               setCurrentJobId(null)
+              trackError('analysis_failed', job.error || 'Unknown error')
               toast.error("Analysis failed", {
                 description: job.error || "Please try again."
               })
@@ -126,6 +132,9 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
     setIsUploading(true)
 
     try {
+      // Track image upload
+      trackImageUpload('clothing', user?.subscription_status === 'premium')
+      
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload/`, {
         method: "POST",
         body: formData,
@@ -165,6 +174,7 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
       
     } catch (error) {
       console.error("Error uploading image:", error)
+      trackError('upload_failed', error instanceof Error ? error.message : 'Unknown error')
       toast.error("Error uploading image. Please try again.")
     } finally {
       setIsUploading(false)

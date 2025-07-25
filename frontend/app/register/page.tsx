@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { Eye, EyeOff, UserPlus, ShoppingBag } from "lucide-react"
+import { trackRegistration, trackFunnelStep } from "@/lib/analytics"
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("")
@@ -34,7 +35,15 @@ export default function RegisterPage() {
     setSuccess("")
 
     try {
+      // Track funnel step
+      trackFunnelStep('registration_started', 1)
+      
       await register(email, password, username)
+      
+      // Track successful registration
+      trackRegistration('email')
+      trackFunnelStep('registration_completed', 2)
+      
       setSuccess("Registration successful! Redirecting to style quiz...")
       router.push("/preferences")
     } catch (err: any) {

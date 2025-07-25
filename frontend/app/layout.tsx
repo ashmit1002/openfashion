@@ -14,6 +14,8 @@ import { UserAccountButton } from "@/components/UserAccountButton"
 import MobileNav from "@/components/MobileNav"
 import StyleChatbot from "@/components/ui/StyleChatbot"
 import PremiumBanner from '@/components/PremiumBanner'
+import { AnalyticsProvider } from "@/components/AnalyticsProvider"
+import GoogleAnalytics from "@/components/GoogleAnalytics"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -29,9 +31,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <link rel="icon" href="/favicon-32x32.png" type="image/x-icon" />
       </head>
       <body className={`${inter.className} antialiased min-h-screen bg-white`}>
+        <GoogleAnalytics />
         <AuthProvider>
           <SearchLimitProvider>
-            <PremiumBanner />
+            <AnalyticsProvider>
+              <PremiumBanner />
           <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm z-40 border-b border-gray-100">
             <div className="max-w-7xl mx-auto px-4">
               <div className="flex items-center justify-between h-16">
@@ -78,6 +82,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <Toaster position="top-right" />
           <MobileNav />
           <StyleChatbot />
+            </AnalyticsProvider>
             </SearchLimitProvider>
         </AuthProvider>
       </body>
