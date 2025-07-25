@@ -16,12 +16,77 @@ import StyleChatbot from "@/components/ui/StyleChatbot"
 import PremiumBanner from '@/components/PremiumBanner'
 import { AnalyticsProvider } from "@/components/AnalyticsProvider"
 import GoogleAnalytics from "@/components/GoogleAnalytics"
+import StructuredData, { websiteSchema, organizationSchema, webAppSchema } from "@/components/StructuredData"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "OpenFashion",
-  description: "AI-powered fashion analyzer",
+  title: {
+    default: "OpenFashion - AI-Powered Fashion Analyzer & Style Discovery",
+    template: "%s | OpenFashion"
+  },
+  description: "Discover your perfect style with OpenFashion's AI-powered fashion analyzer. Upload clothing images, find similar items, get personalized style recommendations, and organize your digital wardrobe. Free fashion analysis and reverse image search.",
+  keywords: [
+    "AI fashion analyzer",
+    "reverse image search clothing",
+    "style discovery",
+    "fashion image recognition",
+    "wardrobe organization",
+    "style chatbot",
+    "fashion recommendations",
+    "clothing search",
+    "fashion AI",
+    "style analysis"
+  ],
+  authors: [{ name: "OpenFashion" }],
+  creator: "OpenFashion",
+  publisher: "OpenFashion",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL('https://openfashion.vercel.app'),
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://openfashion.vercel.app',
+    title: 'OpenFashion - AI-Powered Fashion Analyzer & Style Discovery',
+    description: 'Discover your perfect style with AI-powered fashion analysis. Upload clothing images, find similar items, and get personalized style recommendations.',
+    siteName: 'OpenFashion',
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'OpenFashion - AI-Powered Fashion Analyzer',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'OpenFashion - AI-Powered Fashion Analyzer & Style Discovery',
+    description: 'Discover your perfect style with AI-powered fashion analysis. Upload clothing images, find similar items, and get personalized style recommendations.',
+    images: ['/opengraph-image'],
+    creator: '@openfashion',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    google: 'your-google-verification-code', // Add your Google Search Console verification code
+  },
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -32,6 +97,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body className={`${inter.className} antialiased min-h-screen bg-white`}>
         <GoogleAnalytics />
+        <StructuredData type="website" data={websiteSchema} />
+        <StructuredData type="organization" data={organizationSchema} />
+        <StructuredData type="webapp" data={webAppSchema} />
         <AuthProvider>
           <SearchLimitProvider>
             <AnalyticsProvider>
