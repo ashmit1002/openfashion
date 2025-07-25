@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     siteName: 'OpenFashion',
     images: [
       {
-        url: '/opengraph-image',
+        url: 'https://openfashion.vercel.app/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'OpenFashion - AI-Powered Fashion Analyzer',
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'OpenFashion - AI-Powered Fashion Analyzer & Style Discovery',
     description: 'Discover your perfect style with AI-powered fashion analysis. Upload clothing images, find similar items, and get personalized style recommendations.',
-    images: ['/opengraph-image'],
+    images: ['https://openfashion.vercel.app/opengraph-image'],
     creator: '@openfashion',
   },
   robots: {
