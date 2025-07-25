@@ -30,15 +30,29 @@ export default async function Image() {
             justifyContent: 'center',
           }}
         >
-          {/* Inverted OpenFashion Logo */}
-          <img
-            src="https://openfashion.vercel.app/inverted%20openfashion%20logo.png"
-            width="120"
-            height="120"
+          <div
             style={{
+              width: '120px',
+              height: '120px',
+              borderRadius: '30px',
+              background: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               marginRight: '30px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
             }}
-          />
+          >
+            {/* Transparent Background Logo */}
+            <img
+              src="https://openfashion.vercel.app/transparent_background_f.png"
+              width="80"
+              height="80"
+              style={{
+                borderRadius: '20px',
+              }}
+            />
+          </div>
           <span
             style={{
               fontSize: '72px',
