@@ -7,13 +7,13 @@ export const size = {
 
 export const contentType = 'image/png'
 
-// Updated Open Graph image with correct meta-pink colors and logo
+// Updated Open Graph image with lighter meta-pink background - v3
 export default async function Image() {
   return new ImageResponse(
     (
       <div
         style={{
-          background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)',
+          background: '#ec4899',
           width: '100%',
           height: '100%',
           display: 'flex',
@@ -33,7 +33,7 @@ export default async function Image() {
         >
                       {/* Logo with built-in white circle */}
             <img
-              src="https://openfashion.vercel.app/inverted_openfashion_logo_white_circle.png?v=2"
+              src="https://openfashion.vercel.app/inverted_openfashion_logo_white_circle.png?v=3"
               width="120"
               height="120"
               style={{
