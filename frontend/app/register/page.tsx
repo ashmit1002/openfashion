@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { Eye, EyeOff, UserPlus, ShoppingBag } from "lucide-react"
+import { Eye, EyeOff, UserPlus, ShoppingBag, CheckCircle, XCircle } from "lucide-react"
 import { trackRegistration, trackFunnelStep } from "@/lib/analytics"
+import { validateEmail, validatePassword, validateUsername } from "@/lib/validation"
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("")
@@ -19,14 +20,76 @@ export default function RegisterPage() {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [emailError, setEmailError] = useState("")
+  const [usernameError, setUsernameError] = useState("")
+  const [passwordError, setPasswordError] = useState("")
+  const [confirmPasswordError, setConfirmPasswordError] = useState("")
   const router = useRouter()
   const { register } = useAuth()
+
+  // Validation handlers
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setEmail(value)
+    const validation = validateEmail(value)
+    setEmailError(validation.error || "")
+  }
+
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setUsername(value)
+    const validation = validateUsername(value)
+    setUsernameError(validation.error || "")
+  }
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setPassword(value)
+    const validation = validatePassword(value)
+    setPasswordError(validation.error || "")
+    
+    // Clear confirm password error if passwords now match
+    if (confirmPassword && value === confirmPassword) {
+      setConfirmPasswordError("")
+    }
+  }
+
+  const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setConfirmPassword(value)
+    
+    if (password && value !== password) {
+      setConfirmPasswordError("Passwords do not match")
+    } else {
+      setConfirmPasswordError("")
+    }
+  }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validate all fields
+    const emailValidation = validateEmail(email)
+    const usernameValidation = validateUsername(username)
+    const passwordValidation = validatePassword(password)
+    
+    if (!emailValidation.isValid) {
+      setEmailError(emailValidation.error || "")
+      return
+    }
+    
+    if (!usernameValidation.isValid) {
+      setUsernameError(usernameValidation.error || "")
+      return
+    }
+    
+    if (!passwordValidation.isValid) {
+      setPasswordError(passwordValidation.error || "")
+      return
+    }
+
     if (password !== confirmPassword) {
-      setError("Passwords do not match")
+      setConfirmPasswordError("Passwords do not match")
       return
     }
 
@@ -89,16 +152,30 @@ export default function RegisterPage() {
               >
                 Email
               </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
-                required
-                className="w-full"
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={handleEmailChange}
+                  placeholder="name@example.com"
+                  required
+                  className={`w-full pr-10 ${emailError ? 'border-red-500' : email && !emailError ? 'border-green-500' : ''}`}
+                  disabled={isLoading}
+                />
+                {email && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {emailError ? (
+                      <XCircle className="h-5 w-5 text-red-500" />
+                    ) : (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    )}
+                  </div>
+                )}
+              </div>
+              {emailError && (
+                <p className="text-sm text-red-500">{emailError}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label
@@ -107,16 +184,30 @@ export default function RegisterPage() {
               >
                 Username
               </label>
-              <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="johndoe"
-                required
-                className="w-full"
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={handleUsernameChange}
+                  placeholder="johndoe"
+                  required
+                  className={`w-full pr-10 ${usernameError ? 'border-red-500' : username && !usernameError ? 'border-green-500' : ''}`}
+                  disabled={isLoading}
+                />
+                {username && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {usernameError ? (
+                      <XCircle className="h-5 w-5 text-red-500" />
+                    ) : (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    )}
+                  </div>
+                )}
+              </div>
+              {usernameError && (
+                <p className="text-sm text-red-500">{usernameError}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label
@@ -130,10 +221,10 @@ export default function RegisterPage() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handlePasswordChange}
                   placeholder="••••••••"
                   required
-                  className="w-full pr-10"
+                  className={`w-full pr-10 ${passwordError ? 'border-red-500' : password && !passwordError ? 'border-green-500' : ''}`}
                   disabled={isLoading}
                 />
                 <button
@@ -145,6 +236,9 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {passwordError && (
+                <p className="text-sm text-red-500">{passwordError}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label
@@ -153,16 +247,30 @@ export default function RegisterPage() {
               >
                 Confirm Password
               </label>
-              <Input
-                id="confirmPassword"
-                type={showPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full"
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={handleConfirmPasswordChange}
+                  placeholder="••••••••"
+                  required
+                  className={`w-full pr-10 ${confirmPasswordError ? 'border-red-500' : confirmPassword && !confirmPasswordError ? 'border-green-500' : ''}`}
+                  disabled={isLoading}
+                />
+                {confirmPassword && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {confirmPasswordError ? (
+                      <XCircle className="h-5 w-5 text-red-500" />
+                    ) : (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    )}
+                  </div>
+                )}
+              </div>
+              {confirmPasswordError && (
+                <p className="text-sm text-red-500">{confirmPasswordError}</p>
+              )}
             </div>
             <Button type="submit" className="w-full bg-meta-pink hover:bg-meta-pink/90 text-white" disabled={isLoading}>
               {isLoading ? (

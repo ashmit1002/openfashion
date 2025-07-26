@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { Eye, EyeOff, LogIn, ShoppingBag } from "lucide-react"
+import { Eye, EyeOff, LogIn, ShoppingBag, CheckCircle, XCircle } from "lucide-react"
+import { validateEmail } from "@/lib/validation"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -15,11 +16,27 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [emailError, setEmailError] = useState("")
   const router = useRouter()
   const { login } = useAuth()
 
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setEmail(value)
+    const validation = validateEmail(value)
+    setEmailError(validation.error || "")
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate email
+    const emailValidation = validateEmail(email)
+    if (!emailValidation.isValid) {
+      setEmailError(emailValidation.error || "")
+      return
+    }
+    
     setIsLoading(true)
     setError("")
 
@@ -58,16 +75,30 @@ export default function LoginPage() {
               >
                 Email
               </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
-                required
-                className="w-full"
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={handleEmailChange}
+                  placeholder="name@example.com"
+                  required
+                  className={`w-full pr-10 ${emailError ? 'border-red-500' : email && !emailError ? 'border-green-500' : ''}`}
+                  disabled={isLoading}
+                />
+                {email && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {emailError ? (
+                      <XCircle className="h-5 w-5 text-red-500" />
+                    ) : (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    )}
+                  </div>
+                )}
+              </div>
+              {emailError && (
+                <p className="text-sm text-red-500">{emailError}</p>
+              )}
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">

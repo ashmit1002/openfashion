@@ -5,11 +5,30 @@ from app.models.user import User, UserCreate, Token, UserLogin
 from app.auth.auth_utils import create_access_token, verify_password, hash_password
 from typing import List, Optional
 from datetime import datetime
+import re
 
 router = APIRouter(tags=["Auth"])
 
+def validate_email_format(email: str) -> bool:
+    """Validate email format on the backend"""
+    email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(email_regex, email))
+
+def validate_username_format(username: str) -> bool:
+    """Validate username format on the backend"""
+    username_regex = r'^[a-zA-Z0-9_]{3,30}$'
+    return bool(re.match(username_regex, username))
+
 @router.post("/register", response_model=Token)
 def register(user: UserCreate):
+    # Validate email format
+    if not validate_email_format(user.email):
+        raise HTTPException(status_code=400, detail="Invalid email format")
+    
+    # Validate username format
+    if not validate_username_format(user.username):
+        raise HTTPException(status_code=400, detail="Invalid username format. Username must be 3-30 characters and contain only letters, numbers, and underscores")
+    
     if users_collection.find_one({"email": user.email}):
         raise HTTPException(status_code=400, detail="Email already registered")
     if users_collection.find_one({"username": user.username}):
@@ -50,6 +69,10 @@ def register(user: UserCreate):
 
 @router.post("/login", response_model=Token)
 def login(user: UserLogin):
+    # Validate email format
+    if not validate_email_format(user.email):
+        raise HTTPException(status_code=400, detail="Invalid email format")
+    
     user_data = users_collection.find_one({"email": user.email})
     if not user_data or not verify_password(user.password, user_data["password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
