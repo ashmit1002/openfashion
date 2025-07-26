@@ -236,15 +236,21 @@ def handle_checkout_completed(session: dict) -> dict:
     # Try to get customer_email from session, fallback to metadata if present
     customer_email = session.get('customer_email')
     tier_id = None
+    
+    # Check metadata first
     if 'metadata' in session and session['metadata']:
         customer_email = customer_email or session['metadata'].get('user_email')
         tier_id = session['metadata'].get('tier_id')
+    
+    # If no tier_id in metadata, default to premium for embedded checkout
+    if not tier_id:
+        tier_id = 'premium'
+        logger.info(f"No tier_id in metadata, defaulting to premium for session: {session.get('id')}")
+    
     if not customer_email:
         logger.error(f"No customer_email found in session: {session}")
         raise ValueError("No customer_email found in Stripe session")
-    if not tier_id:
-        logger.error(f"No tier_id found in session metadata: {session}")
-        raise ValueError("No tier_id found in Stripe session metadata")
+    
     subscription_id = session.get('subscription')
 
     # Update user subscription status

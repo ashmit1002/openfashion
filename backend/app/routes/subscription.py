@@ -165,5 +165,9 @@ def create_embedded_checkout_session(user_id: str = Depends(get_current_user_id)
         mode='subscription',
         return_url='https://openfashion.vercel.app/premium/success?session_id={CHECKOUT_SESSION_ID}',
         customer_email=user_id,  # user_id is email in your app
+        metadata={
+            'tier_id': 'premium',
+            'user_email': user_id
+        }
     )
     return {"clientSecret": session.client_secret} 
