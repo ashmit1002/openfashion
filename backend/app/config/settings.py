@@ -33,9 +33,30 @@ class Settings:
     # Google Search
     GOOGLE_SEARCH_API_KEY = os.getenv("GOOGLE_SEARCH_API_KEY")
 
-    # Stripe - Using the provided test keys
+    # Stripe - Production keys required
     STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
     STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
     STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+    
+    # Environment validation
+    ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+    
+    @property
+    def is_production(self):
+        return self.ENVIRONMENT == "production"
+    
+    def validate_stripe_config(self):
+        """Validate Stripe configuration for production"""
+        if self.is_production:
+            if not self.STRIPE_SECRET_KEY or self.STRIPE_SECRET_KEY.startswith("sk_test"):
+                raise ValueError("Production Stripe secret key required")
+            if not self.STRIPE_PUBLISHABLE_KEY or self.STRIPE_PUBLISHABLE_KEY.startswith("pk_test"):
+                raise ValueError("Production Stripe publishable key required")
+            if not self.STRIPE_WEBHOOK_SECRET:
+                raise ValueError("Stripe webhook secret required for production")
 
 settings = Settings()
+
+# Validate configuration on import
+if settings.is_production:
+    settings.validate_stripe_config()

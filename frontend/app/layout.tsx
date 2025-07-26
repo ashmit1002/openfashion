@@ -150,8 +150,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                     openfashion.dev@gmail.com
                   </a>
                 </div>
-                <div className="text-sm text-gray-500">
-                  © {new Date().getFullYear()} OpenFashion. All rights reserved.
+                <div className="flex items-center space-x-4 text-sm text-gray-500">
+                  <Link href="/terms" className="hover:text-meta-pink transition-colors">
+                    Terms of Service
+                  </Link>
+                  <Link href="/privacy" className="hover:text-meta-pink transition-colors">
+                    Privacy Policy
+                  </Link>
+                  <span>© {new Date().getFullYear()} OpenFashion. All rights reserved.</span>
                 </div>
               </div>
             </div>

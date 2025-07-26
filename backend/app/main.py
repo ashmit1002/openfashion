@@ -9,6 +9,7 @@ from app.auth.routes import router as auth_router
 from app.routes.users import router as users_router
 from app.routes.subscription import router as subscription_router
 from app.routers.style_quiz import router as style_quiz_router
+from app.middleware.rate_limit import rate_limit_middleware
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,7 +18,10 @@ logging.basicConfig(
 
 app = FastAPI(title="OpenFashion API")
 
-# TEMPORARY: Allow all origins for debugging CORS issues
+# Add rate limiting middleware
+app.middleware("http")(rate_limit_middleware)
+
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
