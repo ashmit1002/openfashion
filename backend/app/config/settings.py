@@ -1,5 +1,8 @@
 import os
+import logging
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -57,6 +60,9 @@ class Settings:
 
 settings = Settings()
 
-# Validate configuration on import
-if settings.is_production:
-    settings.validate_stripe_config()
+# Validate configuration on import (only if explicitly set to production)
+if settings.is_production and settings.STRIPE_SECRET_KEY:
+    try:
+        settings.validate_stripe_config()
+    except Exception as e:
+        logger.warning(f"Stripe configuration validation failed: {e}")

@@ -2,7 +2,6 @@ import re
 import os
 from typing import Optional
 from fastapi import HTTPException, UploadFile
-import magic
 
 def validate_email(email: str) -> bool:
     """Validate email format"""
