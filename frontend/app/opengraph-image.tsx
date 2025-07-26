@@ -7,6 +7,7 @@ export const size = {
 
 export const contentType = 'image/png'
 
+// Updated Open Graph image with correct meta-pink colors and logo
 export default async function Image() {
   return new ImageResponse(
     (
@@ -30,15 +31,15 @@ export default async function Image() {
             justifyContent: 'center',
           }}
         >
-          {/* Logo with built-in white circle */}
-          <img
-            src="https://openfashion.vercel.app/inverted_openfashion_logo_white_circle.png"
-            width="120"
-            height="120"
-            style={{
-              marginRight: '30px',
-            }}
-          />
+                      {/* Logo with built-in white circle */}
+            <img
+              src="https://openfashion.vercel.app/inverted_openfashion_logo_white_circle.png?v=2"
+              width="120"
+              height="120"
+              style={{
+                marginRight: '30px',
+              }}
+            />
           <span
             style={{
               fontSize: '72px',
