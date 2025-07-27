@@ -101,14 +101,14 @@ export function UserAccountButton() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="rounded-full p-0 h-8 w-8">
+        <Button variant="ghost" size="sm" className="rounded-full p-0 h-8 w-8 overflow-hidden">
           {user.avatar_url ? (
             <Image
               src={user.avatar_url}
               alt={user.display_name || user.username}
               width={32}
               height={32}
-              className="rounded-full"
+              className="rounded-full object-cover w-full h-full"
             />
           ) : (
             <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
@@ -148,7 +148,7 @@ export function UserAccountButton() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href={`/profile/${user.username}`} className="cursor-pointer">
+          <Link href="/closet" className="cursor-pointer">
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </Link>

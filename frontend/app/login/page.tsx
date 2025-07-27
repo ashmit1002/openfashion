@@ -1,11 +1,12 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import type React from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { GoogleSignInButton } from "@/components/ui/GoogleSignInButton"
 import Link from "next/link"
 import { Eye, EyeOff, LogIn, ShoppingBag, CheckCircle, XCircle } from "lucide-react"
 import { validateEmail } from "@/lib/validation"
@@ -18,7 +19,29 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [emailError, setEmailError] = useState("")
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { login } = useAuth()
+
+  // Handle Google OAuth callback
+  useEffect(() => {
+    const googleToken = searchParams.get('google_token')
+    const needsQuiz = searchParams.get('needs_quiz')
+    const isNewUser = searchParams.get('is_new_user')
+    const error = searchParams.get('error')
+    const message = searchParams.get('message')
+
+    if (error) {
+      setError(message || 'Google authentication failed')
+      return
+    }
+
+    if (googleToken) {
+      // Store the token and redirect
+      localStorage.setItem('token', googleToken)
+      const redirectPath = needsQuiz === 'true' ? '/preferences' : '/closet'
+      router.push(redirectPath)
+    }
+  }, [searchParams, router])
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -172,6 +195,7 @@ export default function LoginPage() {
             <span className="flex-shrink mx-4 text-gray-400 text-sm">or</span>
             <div className="flex-grow border-t border-gray-200"></div>
           </div>
+          <GoogleSignInButton />
           <div className="text-center text-sm">
             Don't have an account?{" "}
             <Link href="/register" className="text-meta-pink hover:underline font-medium">

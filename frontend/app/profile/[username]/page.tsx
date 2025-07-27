@@ -1,14 +1,12 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/AuthContext"
 import api, { setAuthToken } from "@/lib/api"
-import { Button } from '@/components/ui/button';
-import Image from 'next/image';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import { useAuth } from "@/contexts/AuthContext"
+import CropperModal from "@/components/ui/CropperModal"
 
 interface User {
   id: string
@@ -24,15 +22,19 @@ interface User {
 
 export default function ProfilePage() {
   const { username } = useParams()
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const [profile, setProfile] = useState<User | null>(null)
-  const [isFollowing, setIsFollowing] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [editMode, setEditMode] = useState(false);
-  const [editData, setEditData] = useState({ display_name: '', avatar_url: '', bio: '' });
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const router = useRouter()
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [editData, setEditData] = useState({ display_name: '', avatar_url: '', bio: '' })
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
+
+  // Cropping state
+  const [showCropper, setShowCropper] = useState(false)
+  const [cropperImage, setCropperImage] = useState<string | null>(null)
 
   const fetchProfile = async () => {
     try {
@@ -90,11 +92,18 @@ export default function ProfilePage() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-        setEditData(prev => ({ ...prev, avatar_url: reader.result as string }));
+        setCropperImage(reader.result as string);
+        setShowCropper(true);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleCropComplete = (croppedBlob: Blob, croppedUrl: string) => {
+    setAvatarPreview(croppedUrl);
+    setEditData(prev => ({ ...prev, avatar_url: croppedUrl }));
+    setShowCropper(false);
+    setCropperImage(null);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -106,6 +115,8 @@ export default function ProfilePage() {
       toast.success("Profile updated!", { style: { background: "#e9fbe9", color: "#1a7f37" } })
       setEditMode(false);
       fetchProfile();
+      // Refresh user data in AuthContext so changes are reflected everywhere
+      await refreshUser();
     } catch (error) {
       console.error("Error updating profile:", error)
     }
@@ -246,6 +257,15 @@ export default function ProfilePage() {
           </form>
         )}
       </div>
+      {showCropper && cropperImage && (
+        <CropperModal
+          image={cropperImage}
+          aspect={1}
+          open={showCropper}
+          onClose={() => setShowCropper(false)}
+          onCropComplete={handleCropComplete}
+        />
+      )}
     </div>
   )
 } 

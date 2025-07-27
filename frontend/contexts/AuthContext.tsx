@@ -21,12 +21,15 @@ interface User {
   stripe_customer_id?: string;
   stripe_subscription_id?: string;
   pending_cancellation?: boolean;
+  auth_provider?: string;
+  google_id?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, username: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
   refreshUser: () => Promise<void>;
@@ -75,13 +78,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await refreshUser();
   };
 
+  const loginWithGoogle = async () => {
+    try {
+      // Get Google OAuth URL from backend
+      const response = await api.get('/auth/google/url');
+      const { auth_url } = response.data;
+      
+      // Redirect to Google OAuth
+      window.location.href = auth_url;
+    } catch (error) {
+      console.error('Error initiating Google login:', error);
+      throw error;
+    }
+  };
+
   const logout = async () => {
     localStorage.removeItem('token');
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading, refreshUser }}>
+    <AuthContext.Provider value={{ user, login, register, loginWithGoogle, logout, loading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

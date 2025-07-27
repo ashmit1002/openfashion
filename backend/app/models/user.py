@@ -14,6 +14,13 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class GoogleAuthRequest(BaseModel):
+    code: str
+    redirect_uri: str
+
+class UsernameUpdate(BaseModel):
+    username: str
+
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -31,6 +38,9 @@ class User(BaseModel):
     followers: List[str] = []
     following: List[str] = []
     needs_quiz: bool = False
+    # Authentication fields
+    auth_provider: str = "email"  # "email" or "google"
+    google_id: Optional[str] = None
     # Subscription fields
     subscription_status: str = "free"  # "free", "premium"
     subscription_tier: Optional[str] = None  # "basic", "pro", "enterprise"

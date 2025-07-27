@@ -9,6 +9,7 @@ import { Trash2, ExternalLink, Edit2 } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { toast } from "sonner"
 import { MasonryGrid } from "@/components/ui/MasonryGrid"
+import CropperModal from "@/components/ui/CropperModal"
 
 interface ClothingItem {
   _id: string
@@ -75,12 +76,16 @@ export default function ClosetPage() {
   const router = useRouter()
 
   // Profile state
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const [profile, setProfile] = useState<User | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [editData, setEditData] = useState({ display_name: '', avatar_url: '', bio: '' })
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Cropping state
+  const [showCropper, setShowCropper] = useState(false)
+  const [cropperImage, setCropperImage] = useState<string | null>(null)
 
   // Tab state
   type ClosetTab = 'outfits' | 'closet' | 'wishlist';
@@ -197,11 +202,18 @@ export default function ClosetPage() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-        setEditData(prev => ({ ...prev, avatar_url: reader.result as string }));
+        setCropperImage(reader.result as string);
+        setShowCropper(true);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleCropComplete = (croppedBlob: Blob, croppedUrl: string) => {
+    setAvatarPreview(croppedUrl);
+    setEditData(prev => ({ ...prev, avatar_url: croppedUrl }));
+    setShowCropper(false);
+    setCropperImage(null);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -215,6 +227,8 @@ export default function ClosetPage() {
       toast.success("Profile updated!", { style: { background: "#e9fbe9", color: "#1a7f37" } })
       setEditMode(false);
       fetchProfile();
+      // Refresh user data in AuthContext so changes are reflected everywhere
+      await refreshUser();
     } catch (error) {
       console.error("Error updating profile:", error)
     }
@@ -557,6 +571,15 @@ export default function ClosetPage() {
             )
           )
         )
+      )}
+      {showCropper && cropperImage && (
+        <CropperModal
+          image={cropperImage}
+          aspect={1}
+          open={showCropper}
+          onClose={() => setShowCropper(false)}
+          onCropComplete={handleCropComplete}
+        />
       )}
     </div>
   )

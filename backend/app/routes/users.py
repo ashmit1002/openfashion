@@ -1,16 +1,22 @@
 from fastapi import APIRouter, HTTPException, Depends, Body, Query
 from app.database import users_collection
 from app.auth.dependencies import get_current_user_id
-from app.models.user import User, UserCreate
+from app.models.user import User, UserCreate, UsernameUpdate
 from typing import List, Optional
 from app.services.search_service import get_shopping_results_from_serpapi, get_google_shopping_light_results
 from app.services.chatbot_service import StyleChatbot
 from bson import ObjectId
+import re
 
 router = APIRouter(tags=["Users"])
 
 # Initialize the style chatbot
 style_chatbot = StyleChatbot()
+
+def validate_username_format(username: str) -> bool:
+    """Validate username format"""
+    username_regex = r'^[a-zA-Z0-9_]{3,30}$'
+    return bool(re.match(username_regex, username))
 
 # Utility to convert MongoDB user to User
 def user_to_model(user) -> User:
@@ -24,6 +30,8 @@ def user_to_model(user) -> User:
         bio=user.get("bio"),
         followers=user.get("followers", []),
         following=user.get("following", []),
+        auth_provider=user.get("auth_provider", "email"),
+        google_id=user.get("google_id"),
         subscription_status=user.get("subscription_status", "free"),
         subscription_tier=user.get("subscription_tier"),
         subscription_end_date=user.get("subscription_end_date"),
@@ -73,6 +81,78 @@ def update_profile(
         users_collection.update_one({"email": user_id}, {"$set": update_fields})
     user = users_collection.find_one({"email": user_id})
     return user_to_model(user)
+
+@router.put("/user/username", response_model=User)
+def update_username(
+    username_update: UsernameUpdate,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Update user's username if it's not already taken
+    """
+    # Validate username format
+    if not validate_username_format(username_update.username):
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid username format. Username must be 3-30 characters and contain only letters, numbers, and underscores"
+        )
+    
+    # Check if username is already taken
+    existing_user = users_collection.find_one({"username": username_update.username})
+    if existing_user and existing_user["email"] != user_id:
+        raise HTTPException(status_code=400, detail="Username already taken")
+    
+    # Get current user
+    current_user = users_collection.find_one({"email": user_id})
+    if not current_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if user is trying to change to their current username
+    if current_user["username"] == username_update.username:
+        raise HTTPException(status_code=400, detail="Username is already set to this value")
+    
+    # Update username
+    users_collection.update_one(
+        {"email": user_id}, 
+        {"$set": {"username": username_update.username}}
+    )
+    
+    # Update the updated user
+    updated_user = users_collection.find_one({"email": user_id})
+    return user_to_model(updated_user)
+
+@router.get("/user/username/check/{username}")
+def check_username_availability(username: str, user_id: str = Depends(get_current_user_id)):
+    """
+    Check if a username is available for the current user
+    """
+    # Validate username format
+    if not validate_username_format(username):
+        return {
+            "available": False,
+            "reason": "Invalid username format. Username must be 3-30 characters and contain only letters, numbers, and underscores"
+        }
+    
+    # Check if username is taken by another user
+    existing_user = users_collection.find_one({"username": username})
+    if existing_user and existing_user["email"] != user_id:
+        return {
+            "available": False,
+            "reason": "Username already taken"
+        }
+    
+    # Check if it's the user's current username
+    current_user = users_collection.find_one({"email": user_id})
+    if current_user and current_user["username"] == username:
+        return {
+            "available": False,
+            "reason": "This is your current username"
+        }
+    
+    return {
+        "available": True,
+        "reason": "Username is available"
+    }
 
 @router.post("/user/follow/{username}")
 def follow_user(username: str, user_id: str = Depends(get_current_user_id)):

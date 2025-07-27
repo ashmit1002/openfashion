@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends, Body
 from app.database import users_collection, style_quizzes_collection
 from app.auth.dependencies import get_current_user_id
-from app.models.user import User, UserCreate, Token, UserLogin
+from app.models.user import User, UserCreate, Token, UserLogin, GoogleAuthRequest
 from app.auth.auth_utils import create_access_token, verify_password, hash_password
+from app.services.google_auth_service import google_auth_service
+from app.config.settings import settings
 from typing import List, Optional
 from datetime import datetime
 import re
@@ -45,6 +47,7 @@ def register(user: UserCreate):
     user_dict["weekly_uploads_used"] = 0
     user_dict["weekly_uploads_reset_date"] = None
     user_dict["stripe_customer_id"] = None
+    user_dict["auth_provider"] = "email"
     
     result = users_collection.insert_one(user_dict)
     user_dict["id"] = str(result.inserted_id)
@@ -89,6 +92,30 @@ def login(user: UserLogin):
         "is_new_user": False  # Existing user logging in
     }
 
+@router.post("/google", response_model=Token)
+def google_auth(request: GoogleAuthRequest):
+    """Authenticate user with Google OAuth"""
+    try:
+        result = google_auth_service.authenticate_google_user(request.code, request.redirect_uri)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Google authentication failed")
+
+@router.get("/google/url")
+def get_google_auth_url():
+    """Get Google OAuth URL"""
+    if not settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="Google OAuth not configured")
+    
+    redirect_uri = settings.GOOGLE_REDIRECT_URI
+    scope = "openid email profile"
+    
+    auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?client_id={settings.GOOGLE_CLIENT_ID}&redirect_uri={redirect_uri}&response_type=code&scope={scope}&access_type=offline"
+    
+    return {"auth_url": auth_url}
+
 @router.get("/me", response_model=User)
 def get_current_user(user_id: str = Depends(get_current_user_id)):
     user = users_collection.find_one({"email": user_id})
@@ -110,6 +137,8 @@ def get_current_user(user_id: str = Depends(get_current_user_id)):
         bio=user.get("bio"),
         followers=user.get("followers", []),
         following=user.get("following", []),
+        auth_provider=user.get("auth_provider", "email"),
+        google_id=user.get("google_id"),
         subscription_status=user.get("subscription_status", "free"),
         subscription_tier=user.get("subscription_tier"),
         subscription_end_date=user.get("subscription_end_date"),
