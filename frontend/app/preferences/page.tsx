@@ -1,16 +1,19 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Progress } from "@/components/ui/progress"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft, ArrowRight } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 
 interface QuizQuestion {
   id: string
   question: string
-  type: "multiple_choice" | "open_ended" | "multi_select"
+  type: "multiple_choice" | "text" | "multi_select"
   options?: string[]
+  max_selections?: number
 }
 
 interface QuizResponse {
@@ -25,6 +28,7 @@ export default function PreferencesPage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [responses, setResponses] = useState<QuizResponse[]>([])
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
+  const [textInput, setTextInput] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [quizStatus, setQuizStatus] = useState<{
     hasQuiz: boolean
@@ -36,6 +40,22 @@ export default function PreferencesPage() {
     fetchQuizStatus()
     fetchQuestions()
   }, [])
+
+  // Reset text input when question changes
+  useEffect(() => {
+    setTextInput('')
+    setSelectedOptions([])
+    
+    // Load existing response for current question
+    const existingResponse = responses.find(r => r.question_id === questions[currentQuestionIndex]?.id)
+    if (existingResponse) {
+      if (Array.isArray(existingResponse.response)) {
+        setSelectedOptions(existingResponse.response)
+      } else {
+        setTextInput(existingResponse.response)
+      }
+    }
+  }, [currentQuestionIndex, questions])
 
   const fetchQuizStatus = async () => {
     try {
@@ -86,6 +106,7 @@ export default function PreferencesPage() {
         setCurrentQuestionIndex(0)
         setResponses([])
         setSelectedOptions([])
+        setTextInput('')
         setQuizStatus({ hasQuiz: true, isCompleted: false, canRetake: true });
         fetchQuestions();
         toast({
@@ -110,12 +131,31 @@ export default function PreferencesPage() {
     }
   }
 
-  const submitResponse = async (answer: string | string[]) => {
+  const saveResponse = (answer: string | string[]) => {
     const currentQuestion = questions[currentQuestionIndex]
     const newResponse = {
       question_id: currentQuestion.id,
       response: answer,
     }
+
+    // Update or add response
+    setResponses(prev => {
+      const existingIndex = prev.findIndex(r => r.question_id === currentQuestion.id)
+      if (existingIndex >= 0) {
+        const updated = [...prev]
+        updated[existingIndex] = newResponse
+        return updated
+      } else {
+        return [...prev, newResponse]
+      }
+    })
+  }
+
+  const submitResponse = async (answer: string | string[]) => {
+    const currentQuestion = questions[currentQuestionIndex]
+    
+    // Save response locally
+    saveResponse(answer)
 
     try {
       const token = localStorage.getItem('token');
@@ -125,12 +165,13 @@ export default function PreferencesPage() {
           "Content-Type": "application/json",
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(newResponse),
+        body: JSON.stringify({
+          question_id: currentQuestion.id,
+          response: answer,
+        }),
       })
 
       if (response.ok) {
-        setResponses([...responses, newResponse])
-        setSelectedOptions([])
         if (currentQuestionIndex < questions.length - 1) {
           setCurrentQuestionIndex(currentQuestionIndex + 1)
         } else {
@@ -148,13 +189,40 @@ export default function PreferencesPage() {
   }
 
   const handleMultiSelect = (option: string) => {
+    const currentQuestion = questions[currentQuestionIndex]
+    const maxSelections = currentQuestion.max_selections
+
     setSelectedOptions(prev => {
       if (prev.includes(option)) {
         return prev.filter(item => item !== option)
       } else {
+        // Check if we're at max selections
+        if (maxSelections && prev.length >= maxSelections) {
+          return prev
+        }
         return [...prev, option]
       }
     })
+  }
+
+  const handleNext = () => {
+    const currentQuestion = questions[currentQuestionIndex]
+    
+    if (currentQuestion.type === "text") {
+      if (textInput.trim()) {
+        submitResponse(textInput.trim())
+      }
+    } else if (currentQuestion.type === "multi_select") {
+      if (selectedOptions.length > 0) {
+        submitResponse(selectedOptions)
+      }
+    }
+  }
+
+  const handlePrevious = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1)
+    }
   }
 
   const completeQuiz = async () => {
@@ -166,12 +234,13 @@ export default function PreferencesPage() {
           'Authorization': `Bearer ${token}`
         }
       });
+
       if (response.ok) {
+        setQuizStatus({ hasQuiz: true, isCompleted: true, canRetake: true });
         toast({
           title: "Quiz Completed!",
-          description: "Your style preferences have been saved.",
+          description: "Your style profile has been created.",
         })
-        router.push("/")
       }
     } catch (error) {
       console.error("Error completing quiz:", error)
@@ -185,10 +254,11 @@ export default function PreferencesPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold">Loading...</h2>
-          <p className="mt-2 text-gray-600">Please wait while we prepare your style quiz.</p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-lg shadow p-6">
+            <p>Loading quiz...</p>
+          </div>
         </div>
       </div>
     )
@@ -233,6 +303,7 @@ export default function PreferencesPage() {
 
   const currentQuestion = questions[currentQuestionIndex]
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100
+  const hasResponse = responses.some(r => r.question_id === currentQuestion.id)
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -276,47 +347,75 @@ export default function PreferencesPage() {
                   </button>
                 ))}
               </div>
-              <button
-                onClick={() => submitResponse(selectedOptions)}
-                disabled={selectedOptions.length === 0}
-                className={`bg-blue-600 text-white px-6 py-2 rounded-md transition-colors ${
-                  selectedOptions.length === 0
-                    ? 'opacity-50 cursor-not-allowed'
-                    : 'hover:bg-blue-700'
-                }`}
-              >
-                Submit Selection
-              </button>
+              {currentQuestion.max_selections && (
+                <p className="text-sm text-gray-500">
+                  Selected: {selectedOptions.length}/{currentQuestion.max_selections}
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
               <textarea
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
                 className="w-full p-3 border rounded-md"
                 rows={4}
                 placeholder="Type your answer here..."
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault()
-                    const answer = (e.target as HTMLTextAreaElement).value.trim()
-                    if (answer) {
-                      submitResponse(answer)
+                    if (textInput.trim()) {
+                      submitResponse(textInput.trim())
                     }
                   }
                 }}
               />
-              <button
-                onClick={() => {
-                  const answer = document.querySelector("textarea")?.value.trim()
-                  if (answer) {
-                    submitResponse(answer)
-                  }
-                }}
-                className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Submit
-              </button>
             </div>
           )}
+
+          {/* Navigation buttons */}
+          <div className="flex justify-between mt-8">
+            <Button
+              onClick={handlePrevious}
+              disabled={currentQuestionIndex === 0}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Previous
+            </Button>
+
+            <div className="flex gap-2">
+              {currentQuestion.type === "multi_select" && (
+                <Button
+                  onClick={() => submitResponse(selectedOptions)}
+                  disabled={selectedOptions.length === 0}
+                  className="bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Submit Selection
+                </Button>
+              )}
+              
+              {currentQuestion.type === "text" && (
+                <Button
+                  onClick={handleNext}
+                  disabled={!textInput.trim()}
+                  className="bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Next
+                </Button>
+              )}
+
+              {currentQuestionIndex === questions.length - 1 && hasResponse && (
+                <Button
+                  onClick={completeQuiz}
+                  className="bg-green-600 text-white hover:bg-green-700"
+                >
+                  Complete Quiz
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       <Toaster />

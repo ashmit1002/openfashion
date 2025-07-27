@@ -26,7 +26,7 @@ STYLE_QUIZ_QUESTIONS = [
     },
     {
         "id": "primary_style",
-        "question": "Which overarching style label best describes your vibe?",
+        "question": "Which overarching style labels best describe your vibe? (Select up to 3)",
         "options": [
             "Minimalist",
             "Streetwear",
@@ -38,11 +38,12 @@ STYLE_QUIZ_QUESTIONS = [
             "Preppy / Classic",
             "Eclectic / Experimental"
         ],
-        "type": "multiple_choice"
+        "type": "multi_select",
+        "max_selections": 3
     },
     {
         "id": "silhouette_preference",
-        "question": "What kind of silhouettes do you gravitate toward?",
+        "question": "What kind of silhouettes do you gravitate toward? (Select up to 3)",
         "options": [
             "Tailored & structured",
             "Oversized & relaxed",
@@ -51,11 +52,12 @@ STYLE_QUIZ_QUESTIONS = [
             "Layered & textured",
             "Monochrome block shapes"
         ],
-        "type": "multiple_choice"
+        "type": "multi_select",
+        "max_selections": 3
     },
     {
         "id": "color_palette",
-        "question": "Which color palette speaks to you most?",
+        "question": "Which color palettes speak to you most? (Select up to 3)",
         "options": [
             "Neutrals (black, white, gray, beige)",
             "Bold primaries (red, blue, yellow)",
@@ -64,11 +66,12 @@ STYLE_QUIZ_QUESTIONS = [
             "Jewel tones (emerald, sapphire, ruby)",
             "High-contrast (black & white only)"
         ],
-        "type": "multiple_choice"
+        "type": "multi_select",
+        "max_selections": 3
     },
     {
         "id": "pattern_prints",
-        "question": "How do you feel about patterns and prints?",
+        "question": "How do you feel about patterns and prints? (Select all that apply)",
         "options": [
             "All-over bold prints (florals, geometrics)",
             "Subtle textures (pinstripes, tweed)",
@@ -76,11 +79,11 @@ STYLE_QUIZ_QUESTIONS = [
             "Color-blocking",
             "I prefer solids only"
         ],
-        "type": "multiple_choice"
+        "type": "multi_select"
     },
     {
         "id": "material_preference",
-        "question": "Which fabrics make you feel most comfortable?",
+        "question": "Which fabrics make you feel most comfortable? (Select all that apply)",
         "options": [
             "Breathable cotton / linen",
             "Stretchy knits / jersey",
@@ -94,7 +97,7 @@ STYLE_QUIZ_QUESTIONS = [
     {
         "id": "comfort_vs_style",
         "question": "On a scale of 1–5, how much do you prioritize comfort over trendiness?",
-        "type": "multiple_choice",    # 1=All comfort, 5=All trend
+        "type": "multiple_choice",
         "options": [
             "1",
             "2",
@@ -105,7 +108,7 @@ STYLE_QUIZ_QUESTIONS = [
     },
     {
         "id": "price_sensitivity",
-        "question": "What’s your typical budget per clothing item?",
+        "question": "What's your typical budget per clothing item?",
         "options": [
             "Under $50",
             "$50–$100",
@@ -117,15 +120,16 @@ STYLE_QUIZ_QUESTIONS = [
     },
     {
         "id": "brand_loyalty",
-        "question": "Which of these statements best reflects your brand approach?",
+        "question": "Which of these statements best reflect your brand approach? (Select up to 2)",
         "options": [
             "I stick to favorite brands/designers",
             "I mix high-end & high-street",
             "I chase new emerging labels",
             "I prefer sustainable / ethical brands",
-            "Brands don’t matter to me"
+            "Brands don't matter to me"
         ],
-        "type": "multiple_choice"
+        "type": "multi_select",
+        "max_selections": 2
     },
     {
         "id": "sustainability",
@@ -140,7 +144,7 @@ STYLE_QUIZ_QUESTIONS = [
     },
     {
         "id": "season_focus",
-        "question": "Which season’s wardrobe are you building right now?",
+        "question": "Which seasons' wardrobes are you building right now? (Select all that apply)",
         "options": [
             "Spring",
             "Summer",
@@ -148,7 +152,7 @@ STYLE_QUIZ_QUESTIONS = [
             "Winter",
             "All-season staples"
         ],
-        "type": "multiple_choice"
+        "type": "multi_select"
     },
     {
         "id": "wardrobe_gaps",
@@ -161,7 +165,8 @@ STYLE_QUIZ_QUESTIONS = [
             "Footwear",
             "Accessories (bags, hats, jewelry)"
         ],
-        "type": "multi_select"
+        "type": "multi_select",
+        "max_selections": 3
     },
     {
         "id": "inspiration_sources",
@@ -191,7 +196,7 @@ STYLE_QUIZ_QUESTIONS = [
     },
     {
         "id": "event_focus",
-        "question": "What occasions do you dress for most often?",
+        "question": "What occasions do you dress for most often? (Select up to 3)",
         "options": [
             "Everyday casual",
             "Work / Professional",
@@ -199,11 +204,12 @@ STYLE_QUIZ_QUESTIONS = [
             "Athletic / Active",
             "Special events (weddings, parties)"
         ],
-        "type": "multiple_choice"
+        "type": "multi_select",
+        "max_selections": 3
     },
     {
         "id": "fit_pic_importance",
-        "question": "How important is looking “Instagram-ready” or like a “fit pic”?",
+        "question": "How important is looking Instagram-ready or like a fit pic?",
         "options": [
             "Very important",
             "Somewhat important",
