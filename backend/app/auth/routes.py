@@ -116,6 +116,20 @@ def get_google_auth_url():
     
     return {"auth_url": auth_url}
 
+@router.post("/refresh")
+def refresh_token(user_id: str = Depends(get_current_user_id)):
+    """Refresh the access token"""
+    user_data = users_collection.find_one({"email": user_id})
+    if not user_data:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Create a new token
+    new_token = create_access_token({"sub": user_id})
+    return {
+        "access_token": new_token,
+        "token_type": "bearer"
+    }
+
 @router.get("/me", response_model=User)
 def get_current_user(user_id: str = Depends(get_current_user_id)):
     user = users_collection.find_one({"email": user_id})

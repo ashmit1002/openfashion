@@ -7,7 +7,7 @@ class Settings:
     # JWT
     SECRET_KEY = os.getenv("SECRET_KEY", "secretkey123")
     ALGORITHM = os.getenv("ALGORITHM", "HS256")
-    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 1440))  # 24 hours instead of 30 minutes
 
     # MongoDB
     MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")

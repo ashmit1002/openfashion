@@ -8,13 +8,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No image provided' }, { status: 400 })
   }
 
+  // Get the authorization header from the request
+  const authHeader = request.headers.get('authorization')
+
   try {
     const backendFormData = new FormData()
     backendFormData.append('image', image)
 
-    const response = await fetch('http://127.0.0.1:5000/upload', {
+    const headers: Record<string, string> = {}
+    if (authHeader) {
+      headers['Authorization'] = authHeader
+    }
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/upload/`, {
       method: 'POST',
       body: backendFormData,
+      headers,
     })
 
     if (!response.ok) {

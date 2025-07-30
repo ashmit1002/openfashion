@@ -75,6 +75,74 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
               Authorization: `Bearer ${token}`,
             },
           })
+
+          // Handle token refresh if needed
+          if (response.status === 401) {
+            try {
+              const refreshResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+              
+              if (refreshResponse.ok) {
+                const refreshData = await refreshResponse.json();
+                localStorage.setItem('token', refreshData.access_token);
+                
+                // Retry the job status check with the new token
+                const retryResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload/job/${currentJobId}`, {
+                  headers: {
+                    Authorization: `Bearer ${refreshData.access_token}`,
+                  },
+                });
+                
+                if (retryResponse.ok) {
+                  const job: JobStatus = await retryResponse.json();
+                  setJobStatus(job);
+                  
+                  if (job.status === "completed" && job.result) {
+                    setIsPolling(false);
+                    setCurrentJobId(null);
+                    
+                    // Track analysis completion
+                    trackAnalysisComplete(job.result.components.length, user?.subscription_status === 'premium');
+                    
+                    onAnalysisComplete(job.result);
+                    await refreshUser?.();
+                    
+                    // Show success message
+                    if (user && user.subscription_status === 'free') {
+                      toast.success("Analysis complete!", {
+                        description: `${user.weekly_uploads_used + 1}/3 uploads used this week.`,
+                      });
+                    } else {
+                      toast.success("Analysis complete!");
+                    }
+                  } else if (job.status === "failed") {
+                    setIsPolling(false);
+                    setCurrentJobId(null);
+                    trackError('analysis_failed', job.error || 'Unknown error');
+                    toast.error("Analysis failed", {
+                      description: job.error || "Please try again."
+                    });
+                  }
+                }
+                return;
+              } else {
+                // Refresh failed, stop polling
+                setIsPolling(false);
+                setCurrentJobId(null);
+                return;
+              }
+            } catch (refreshError) {
+              // Refresh failed, stop polling
+              setIsPolling(false);
+              setCurrentJobId(null);
+              return;
+            }
+          }
           
           if (response.ok) {
             const job: JobStatus = await response.json()
@@ -145,6 +213,73 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
           Authorization: `Bearer ${token}`,
         },
       })
+
+      // Handle token refresh if needed
+      if (response.status === 401) {
+        try {
+          const refreshResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json();
+            localStorage.setItem('token', refreshData.access_token);
+            
+            // Retry the upload with the new token
+            const retryResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload/`, {
+              method: "POST",
+              body: formData,
+              headers: {
+                Authorization: `Bearer ${refreshData.access_token}`,
+              },
+            });
+            
+            if (!retryResponse.ok) {
+              const errorData = await retryResponse.json();
+              if (retryResponse.status === 403) {
+                // Upload limit reached
+                toast.error("Upload limit reached!", {
+                  description: "Upgrade to Premium for unlimited uploads.",
+                  action: {
+                    label: "Upgrade",
+                    onClick: () => window.location.href = "/premium"
+                  }
+                })
+                return
+              }
+              throw new Error(errorData.detail?.message || "Upload failed")
+            }
+            
+            const data = await retryResponse.json();
+            setCurrentJobId(data.job_id);
+            setJobStatus({
+              job_id: data.job_id,
+              status: "pending",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+            
+            toast.success("Image uploaded!", {
+              description: "Analysis in progress. Results will appear in the Analysis History tab. You can leave this page and return later."
+            });
+            return;
+          } else {
+            // Refresh failed, redirect to login
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+            return;
+          }
+        } catch (refreshError) {
+          // Refresh failed, redirect to login
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+          return;
+        }
+      }
 
       if (!response.ok) {
         const errorData = await response.json()

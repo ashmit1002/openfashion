@@ -23,16 +23,46 @@ api.interceptors.request.use(
   }
 )
 
-// Response interceptor to handle auth errors
+// Response interceptor to handle auth errors and token refresh
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Clear invalid token
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+  async (error) => {
+    const originalRequest = error.config;
+    
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        // Try to refresh the token
+        const refreshResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json();
+          localStorage.setItem('token', refreshData.access_token);
+          setAuthToken(refreshData.access_token);
+          
+          // Retry the original request with the new token
+          originalRequest.headers['Authorization'] = `Bearer ${refreshData.access_token}`;
+          return api(originalRequest);
+        } else {
+          // Refresh failed, sign out
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+        }
+      } catch (refreshError) {
+        // Refresh failed, sign out
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
-    return Promise.reject(error)
+    
+    return Promise.reject(error);
   }
 )
 
