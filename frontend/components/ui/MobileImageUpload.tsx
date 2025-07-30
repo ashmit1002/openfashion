@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Camera, Image as ImageIcon, Upload } from "lucide-react"
-import { useMobileDetection } from "@/lib/hooks"
+import { useMobileDetection, useIOSDetection } from "@/lib/hooks"
 
 interface MobileImageUploadProps {
   onImageSelect: (file: File) => void
@@ -24,6 +24,7 @@ export default function MobileImageUpload({
   onPreviewClick
 }: MobileImageUploadProps) {
   const isMobile = useMobileDetection()
+  const isIOS = useIOSDetection()
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -47,23 +48,13 @@ export default function MobileImageUpload({
   }
 
   if (isMobile) {
-    return (
-      <div className={`flex flex-col sm:flex-row gap-3 ${className}`}>
-        <label className="meta-button cursor-pointer flex items-center justify-center gap-2 flex-1 disabled:opacity-50 disabled:cursor-not-allowed">
+    if (isIOS) {
+      // For iOS Safari, use a single input without capture attribute
+      // This will show both camera and photo library options in the native picker
+      return (
+        <label className={`meta-button cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}>
           <Camera className="h-4 w-4" />
-          Take Photo
-          <input
-            type="file"
-            className="hidden"
-            accept="image/*"
-            capture="environment"
-            onChange={handleFileChange}
-            disabled={disabled}
-          />
-        </label>
-        <label className="meta-button cursor-pointer flex items-center justify-center gap-2 flex-1 disabled:opacity-50 disabled:cursor-not-allowed">
-          <ImageIcon className="h-4 w-4" />
-          Choose Photo
+          Take Photo or Choose from Library
           <input
             type="file"
             className="hidden"
@@ -72,8 +63,37 @@ export default function MobileImageUpload({
             disabled={disabled}
           />
         </label>
-      </div>
-    )
+      )
+    } else {
+      // For Android and other mobile devices, provide separate options
+      return (
+        <div className={`flex flex-col sm:flex-row gap-3 ${className}`}>
+          <label className="meta-button cursor-pointer flex items-center justify-center gap-2 flex-1 disabled:opacity-50 disabled:cursor-not-allowed">
+            <Camera className="h-4 w-4" />
+            Take Photo
+            <input
+              type="file"
+              className="hidden"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileChange}
+              disabled={disabled}
+            />
+          </label>
+          <label className="meta-button cursor-pointer flex items-center justify-center gap-2 flex-1 disabled:opacity-50 disabled:cursor-not-allowed">
+            <ImageIcon className="h-4 w-4" />
+            Choose Photo
+            <input
+              type="file"
+              className="hidden"
+              accept="image/*"
+              onChange={handleFileChange}
+              disabled={disabled}
+            />
+          </label>
+        </div>
+      )
+    }
   }
 
   // Desktop fallback

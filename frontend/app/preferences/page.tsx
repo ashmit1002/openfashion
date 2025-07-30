@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
+import { useAuth } from "@/contexts/AuthContext"
 
 interface QuizQuestion {
   id: string
@@ -24,6 +25,7 @@ interface QuizResponse {
 export default function PreferencesPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const { refreshUser } = useAuth()
   const [questions, setQuestions] = useState<QuizQuestion[]>([])
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [responses, setResponses] = useState<QuizResponse[]>([])
@@ -37,9 +39,11 @@ export default function PreferencesPage() {
   }>({ hasQuiz: false, isCompleted: false, canRetake: false })
 
   useEffect(() => {
+    // Refresh user data to ensure profile picture is loaded
+    refreshUser()
     fetchQuizStatus()
     fetchQuestions()
-  }, [])
+  }, [refreshUser])
 
   // Reset text input when question changes
   useEffect(() => {

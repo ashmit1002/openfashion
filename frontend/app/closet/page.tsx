@@ -153,11 +153,13 @@ export default function ClosetPage() {
   };
 
   useEffect(() => {
+    // Refresh user data to ensure profile picture is loaded
+    refreshUser()
     fetchCloset()
     fetchProfile()
     fetchOutfitPosts()
     // eslint-disable-next-line
-  }, [user])
+  }, [user, refreshUser])
 
   // Fetch wishlist items when tab changes to wishlist
   useEffect(() => {

@@ -38,8 +38,11 @@ function LoginForm() {
     if (googleToken) {
       // Store the token and redirect
       localStorage.setItem('token', googleToken)
-      const redirectPath = needsQuiz === 'true' ? '/preferences' : '/closet'
-      router.push(redirectPath)
+      // Add a small delay to ensure token is properly set before redirect
+      setTimeout(() => {
+        const redirectPath = needsQuiz === 'true' ? '/preferences' : '/closet'
+        window.location.href = redirectPath
+      }, 100)
     }
   }, [searchParams, router])
 

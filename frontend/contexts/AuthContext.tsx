@@ -54,12 +54,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('token');
         setUser(null);
       }
+    } else {
+      setUser(null);
     }
     setLoading(false);
   };
 
   useEffect(() => {
-    refreshUser();
+    // Add a small delay to ensure localStorage is available
+    const timer = setTimeout(() => {
+      refreshUser();
+    }, 50);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const login = async (email: string, password: string) => {

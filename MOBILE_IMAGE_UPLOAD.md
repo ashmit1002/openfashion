@@ -55,10 +55,22 @@ This hook:
 The app detects mobile devices using:
 1. **User Agent Detection**: Checks for mobile device strings (Android, iOS, etc.)
 2. **Touch Detection**: Checks for touch capabilities
-3. **Responsive Updates**: Listens for window resize events
+3. **iOS Detection**: Specifically detects iOS devices for better Safari support
+4. **Responsive Updates**: Listens for window resize events
 
 ### File Input Behavior
-On mobile devices, the component renders two separate file inputs:
+
+#### iOS Safari (iPhone/iPad)
+For iOS Safari, the component uses a single file input without the `capture` attribute:
+```html
+<input type="file" accept="image/*" />
+```
+- Shows the native iOS picker with both camera and photo library options
+- Users can choose to take a new photo or select from their camera roll
+- Avoids the issue where `capture="environment"` forces camera-only mode
+
+#### Android and Other Mobile Devices
+For Android and other mobile devices, the component renders two separate file inputs:
 
 1. **"Take Photo" Button**:
    ```html
@@ -145,13 +157,19 @@ The permission prompts are handled by the browser and operating system.
    - Ensure the site is served over HTTPS
    - Check that camera permissions are granted
 
-2. **Photo library not accessible**:
-   - Check photo library permissions
-   - Ensure the site is served over HTTPS
+2. **Photo library not accessible on iOS Safari**:
+   - The app now uses iOS-specific detection to avoid the `capture` attribute issue
+   - iOS Safari will show both camera and photo library options in the native picker
+   - Check photo library permissions in iOS Settings
 
 3. **File input not working**:
    - Verify the component is properly imported
    - Check that the `onImageSelect` callback is defined
+
+4. **iOS Safari only shows camera (no photo library option)**:
+   - This was a known issue with `capture="environment"` on iOS Safari
+   - The app now detects iOS devices and uses a different approach
+   - iOS users will see "Take Photo or Choose from Library" button
 
 ### Debug Mode
 To debug mobile detection, you can log the mobile state:

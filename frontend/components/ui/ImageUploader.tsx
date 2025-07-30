@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Upload, Camera, X, Crown, AlertCircle, Clock, CheckCircle, AlertTriangle } from "lucide-react"
+import { Upload, Camera, X, Crown, AlertCircle, Clock, CheckCircle, AlertTriangle, Image as ImageIcon } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import CropperModal from './CropperModal'
 import { trackImageUpload, trackAnalysisComplete, trackError } from "@/lib/analytics"
-import { useMobileDetection } from "@/lib/hooks"
+import { useMobileDetection, useIOSDetection } from "@/lib/hooks"
 
 interface AnalysisResult {
   annotated_image_base64: string
@@ -52,6 +52,7 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null)
   const [isPolling, setIsPolling] = useState(false)
   const isMobile = useMobileDetection()
+  const isIOS = useIOSDetection()
   
   const aspectOptions = [
     { label: '1:1', value: 1 },
@@ -345,22 +346,72 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
               </div>
               <div>
                 <h3 className="text-xl font-semibold mb-1">Upload your outfit</h3>
-                <p className="text-meta-text-secondary text-sm">Take a photo or upload an image to analyze</p>
+                <p className="text-meta-text-secondary text-sm">
+                  {isMobile ? "Take a photo or choose from your camera roll" : "Take a photo or upload an image to analyze"}
+                </p>
               </div>
-              <div className="flex flex-wrap justify-center gap-3 pt-2">
-                <label className="meta-button cursor-pointer flex items-center gap-2">
-                  <Camera className="h-4 w-4" />
-                  Upload
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={handleFileChange}
-                    disabled={isUploading}
-                  />
-                </label>
-              </div>
+              
+              {/* Mobile-specific upload options */}
+              {isMobile ? (
+                <div className="flex flex-col sm:flex-row gap-3 pt-2 w-full max-w-xs">
+                  {isIOS ? (
+                    // For iOS Safari, use a single input without capture attribute
+                    <label className="meta-button cursor-pointer flex items-center justify-center gap-2 flex-1">
+                      <Camera className="h-4 w-4" />
+                      Take Photo or Choose from Library
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        disabled={isUploading}
+                      />
+                    </label>
+                  ) : (
+                    // For Android and other mobile devices, provide separate options
+                    <>
+                      <label className="meta-button cursor-pointer flex items-center justify-center gap-2 flex-1">
+                        <Camera className="h-4 w-4" />
+                        Take Photo
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={handleFileChange}
+                          disabled={isUploading}
+                        />
+                      </label>
+                      <label className="meta-button cursor-pointer flex items-center justify-center gap-2 flex-1">
+                        <ImageIcon className="h-4 w-4" />
+                        Choose Photo
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          disabled={isUploading}
+                        />
+                      </label>
+                    </>
+                  )}
+                </div>
+              ) : (
+                /* Desktop upload option */
+                <div className="flex flex-wrap justify-center gap-3 pt-2">
+                  <label className="meta-button cursor-pointer flex items-center gap-2">
+                    <Camera className="h-4 w-4" />
+                    Upload
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      disabled={isUploading}
+                    />
+                  </label>
+                </div>
+              )}
             </div>
           </div>
         ) : (
