@@ -358,7 +358,7 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
                     // For iOS Safari, use a single input without capture attribute
                     <label className="meta-button cursor-pointer flex items-center justify-center gap-2 flex-1">
                       <Camera className="h-4 w-4" />
-                      Take Photo or Choose from Library
+                      Upload
                       <input
                         type="file"
                         className="hidden"

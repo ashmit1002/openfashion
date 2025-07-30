@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 
 interface SearchLimit {
   limit: number;
@@ -19,9 +19,9 @@ const SearchLimitContext = createContext<SearchLimitContextType | undefined>(und
 export function SearchLimitProvider({ children }: { children: ReactNode }) {
   const [searchLimit, setSearchLimit] = useState<SearchLimit | null>(null);
 
-  const updateSearchLimit = (limit: SearchLimit) => {
+  const updateSearchLimit = useCallback((limit: SearchLimit) => {
     setSearchLimit(limit);
-  };
+  }, []);
 
   return (
     <SearchLimitContext.Provider value={{ searchLimit, updateSearchLimit }}>
