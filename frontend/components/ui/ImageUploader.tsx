@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import CropperModal from './CropperModal'
 import { trackImageUpload, trackAnalysisComplete, trackError } from "@/lib/analytics"
+import { useMobileDetection } from "@/lib/hooks"
 
 interface AnalysisResult {
   annotated_image_base64: string
@@ -50,6 +51,7 @@ export default function ImageUploader({ onAnalysisComplete }: ImageUploaderProps
   const [currentJobId, setCurrentJobId] = useState<string | null>(null)
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null)
   const [isPolling, setIsPolling] = useState(false)
+  const isMobile = useMobileDetection()
   
   const aspectOptions = [
     { label: '1:1', value: 1 },

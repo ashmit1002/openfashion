@@ -1,10 +1,12 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import api from "@/lib/api"
 import { Button } from "@/components/ui/button"
-import CropperModal from "@/components/ui/CropperModal";
+import CropperModal from "@/components/ui/CropperModal"
+import MobileImageUpload from "@/components/ui/MobileImageUpload"
+import { useMobileDetection } from "@/lib/hooks"
 
 interface OutfitComponentInput {
   name: string
@@ -33,6 +35,7 @@ export default function AddOutfitPage() {
   const [showRegions, setShowRegions] = useState(true)
   const [showCropper, setShowCropper] = useState(false);
   const [rawImage, setRawImage] = useState<string | null>(null);
+  const isMobile = useMobileDetection();
 
   // Add region to OutfitComponentInput
   interface OutfitComponentInput {
