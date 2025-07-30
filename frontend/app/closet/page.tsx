@@ -159,7 +159,7 @@ export default function ClosetPage() {
     fetchProfile()
     fetchOutfitPosts()
     // eslint-disable-next-line
-  }, [user]) // Remove refreshUser from dependencies since it's now memoized
+  }, [user?.username]) // Use username instead of entire user object to prevent infinite loops
 
   // Fetch wishlist items when tab changes to wishlist
   useEffect(() => {

@@ -1,10 +1,13 @@
+"use client"
+
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/AuthContext"
-import { useState } from "react"
+import { toast } from "sonner"
 
 interface GoogleSignInButtonProps {
   className?: string
-  variant?: "default" | "outline" | "secondary" | "ghost" | "link"
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
   size?: "default" | "sm" | "lg" | "icon"
   children?: React.ReactNode
 }
@@ -20,10 +23,54 @@ export function GoogleSignInButton({
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
+    
+    // Mobile detection and debugging
+    const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase())
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    const isAndroid = /android/i.test(navigator.userAgent)
+    
+    console.log('🔍 Google Sign-in Debug:', {
+      isMobile,
+      isIOS,
+      isAndroid,
+      userAgent: navigator.userAgent,
+      currentUrl: window.location.href,
+      protocol: window.location.protocol,
+      hostname: window.location.hostname,
+      baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+      apiUrl: process.env.NEXT_PUBLIC_API_URL
+    })
+
     try {
       await loginWithGoogle()
     } catch (error) {
-      console.error('Google sign-in error:', error)
+      console.error('❌ Google sign-in error:', error)
+      
+      // Provide mobile-specific error messages
+      if (isMobile) {
+        if (window.location.protocol === 'http:') {
+          toast.error("HTTPS Required", {
+            description: "Google sign-in requires HTTPS. Please use a secure connection."
+          })
+        } else if (isIOS) {
+          toast.error("iOS Safari Issue", {
+            description: "Try using Chrome or Safari in private browsing mode."
+          })
+        } else if (isAndroid) {
+          toast.error("Android Browser Issue", {
+            description: "Try using Chrome or clear your browser cache."
+          })
+        } else {
+          toast.error("Mobile Browser Issue", {
+            description: "Please try using a different browser or desktop."
+          })
+        }
+      } else {
+        toast.error("Google sign-in failed", {
+          description: "Please try again or contact support."
+        })
+      }
+      
       setIsLoading(false)
     }
   }

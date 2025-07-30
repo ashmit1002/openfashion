@@ -72,7 +72,7 @@ export default function FashionSearchPage() {
     if (user) {
       loadSuggestions();
     }
-  }, [user, updateSearchLimit]);
+  }, [user?.username, updateSearchLimit]);
 
   const handleSearch = async (searchQuery: string = query) => {
     if (!searchQuery.trim()) return;
@@ -136,7 +136,7 @@ export default function FashionSearchPage() {
     if (user) {
       refreshSearchLimit();
     }
-  }, [user, updateSearchLimit]);
+  }, [user?.username, updateSearchLimit]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {

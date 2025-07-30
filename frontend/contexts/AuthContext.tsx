@@ -87,15 +87,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithGoogle = async () => {
     try {
+      // Mobile detection for debugging
+      const isMobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(navigator.userAgent.toLowerCase());
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /android/i.test(navigator.userAgent);
+      
+      console.log('🔍 AuthContext Debug:', {
+        isMobile,
+        isIOS,
+        isAndroid,
+        currentUrl: window.location.href,
+        protocol: window.location.protocol,
+        hostname: window.location.hostname
+      });
+
       // Get Google OAuth URL from backend
       const response = await api.get('/auth/google/url');
       const { auth_url } = response.data;
       
+      console.log('🔗 Google OAuth URL:', auth_url);
+      console.log('📱 Redirecting to Google OAuth...');
+      
+      if (isMobile) {
+        console.log('📱 Mobile device detected');
+        if (window.location.protocol === 'http:') {
+          console.warn('⚠️ HTTP detected - Google OAuth may fail on mobile');
+        }
+      }
+      
       // Redirect to Google OAuth
       window.location.href = auth_url;
-    } catch (error) {
-      console.error('Error initiating Google login:', error);
-      throw error;
+    } catch (error: any) {
+      console.error('❌ Error initiating Google login:', error);
+      
+      // Provide more detailed error information
+      if (error.response) {
+        console.error('📡 Response error:', error.response.data);
+        throw new Error(`Google OAuth configuration error: ${error.response.data.detail || 'Unknown error'}`);
+      } else if (error.request) {
+        console.error('🌐 Request error:', error.request);
+        throw new Error('Network error: Unable to reach the authentication server');
+      } else {
+        throw error;
+      }
     }
   };
 

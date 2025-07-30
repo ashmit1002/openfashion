@@ -52,7 +52,7 @@ export function UserAccountButton() {
     return () => {
       window.removeEventListener('searchLimitUpdated', handleSearchLimitUpdate as EventListener)
     }
-  }, [user, updateSearchLimit]) // Include updateSearchLimit in dependencies
+  }, [user?.username, updateSearchLimit]) // Use username instead of entire user object
 
   if (!user) {
     return (
