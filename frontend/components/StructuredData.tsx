@@ -36,12 +36,12 @@ export const websiteSchema = {
   "@type": "WebSite",
   "name": "OpenFashion",
   "description": "AI-powered fashion analyzer and style discovery platform",
-  "url": "https://openfashion.vercel.app",
+  "url": "https://www.openfashionapp.com",
   "potentialAction": {
     "@type": "SearchAction",
     "target": {
       "@type": "EntryPoint",
-      "urlTemplate": "https://openfashion.vercel.app/fashion-search?q={search_term_string}"
+      "urlTemplate": "https://www.openfashionapp.com/fashion-search?q={search_term_string}"
     },
     "query-input": "required name=search_term_string"
   },
@@ -57,8 +57,8 @@ export const organizationSchema = {
   "@type": "Organization",
   "name": "OpenFashion",
   "description": "AI-powered fashion technology company",
-  "url": "https://openfashion.vercel.app",
-  "logo": "https://openfashion.vercel.app/favicon-32x32.png",
+  "url": "https://www.openfashionapp.com",
+  "logo": "https://www.openfashionapp.com/favicon-32x32.png",
   "foundingDate": "2024",
   "sameAs": [
     "https://twitter.com/openfashion",
@@ -72,7 +72,7 @@ export const webAppSchema = {
   "@type": "WebApplication",
   "name": "OpenFashion",
   "description": "AI-powered fashion analyzer and style discovery platform",
-  "url": "https://openfashion.vercel.app",
+  "url": "https://www.openfashionapp.com",
   "applicationCategory": "LifestyleApplication",
   "operatingSystem": "Web Browser",
   "offers": {
@@ -88,7 +88,7 @@ export const webAppSchema = {
     "Wardrobe organization",
     "Personalized style chatbot"
   ],
-  "screenshot": "https://openfashion.vercel.app/opengraph-image",
+  "screenshot": "https://www.openfashionapp.com/opengraph-image",
   "author": {
     "@type": "Organization",
     "name": "OpenFashion"
@@ -101,7 +101,7 @@ export const softwareAppSchema = {
   "@type": "SoftwareApplication",
   "name": "OpenFashion AI Analyzer",
   "description": "AI-powered fashion image analysis and style discovery tool",
-  "url": "https://openfashion.vercel.app",
+  "url": "https://www.openfashionapp.com",
   "applicationCategory": "LifestyleApplication",
   "operatingSystem": "Web Browser",
   "offers": {

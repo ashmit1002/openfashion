@@ -46,20 +46,20 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://openfashion.vercel.app'),
+  metadataBase: new URL('https://www.openfashionapp.com'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://openfashion.vercel.app',
+    url: 'https://www.openfashionapp.com',
     title: 'OpenFashion - AI-Powered Fashion Analyzer & Style Discovery',
     description: 'Discover your perfect style with AI-powered fashion analysis. Upload clothing images, find similar items, and get personalized style recommendations.',
     siteName: 'OpenFashion',
     images: [
       {
-        url: 'https://openfashion.vercel.app/opengraph-image',
+        url: 'https://www.openfashionapp.com/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'OpenFashion - AI-Powered Fashion Analyzer',
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'OpenFashion - AI-Powered Fashion Analyzer & Style Discovery',
     description: 'Discover your perfect style with AI-powered fashion analysis. Upload clothing images, find similar items, and get personalized style recommendations.',
-    images: ['https://openfashion.vercel.app/opengraph-image'],
+    images: ['https://www.openfashionapp.com/opengraph-image'],
     creator: '@openfashion',
   },
   robots: {
@@ -85,7 +85,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: '5d-WuFDX_2or2hsorDFUWwWvjzhaHann5hniQyialFw',
+    google: 'l6G80Pv5H3GRwlUIQA34oZsVKPXRQEnD0rATiHJnAw4',
   },
 }
 

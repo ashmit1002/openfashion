@@ -1,61 +1,61 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://openfashion.vercel.app</loc>
+    <loc>https://www.openfashionapp.com</loc>
     <lastmod>2024-07-25T20:00:00.000Z</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://openfashion.vercel.app/closet</loc>
+    <loc>https://www.openfashionapp.com/closet</loc>
     <lastmod>2024-07-25T20:00:00.000Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://openfashion.vercel.app/explore</loc>
+    <loc>https://www.openfashionapp.com/explore</loc>
     <lastmod>2024-07-25T20:00:00.000Z</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://openfashion.vercel.app/fashion-search</loc>
+    <loc>https://www.openfashionapp.com/fashion-search</loc>
     <lastmod>2024-07-25T20:00:00.000Z</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://openfashion.vercel.app/chat</loc>
+    <loc>https://www.openfashionapp.com/chat</loc>
     <lastmod>2024-07-25T20:00:00.000Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://openfashion.vercel.app/wishlist</loc>
+    <loc>https://www.openfashionapp.com/wishlist</loc>
     <lastmod>2024-07-25T20:00:00.000Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://openfashion.vercel.app/preferences</loc>
+    <loc>https://www.openfashionapp.com/preferences</loc>
     <lastmod>2024-07-25T20:00:00.000Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://openfashion.vercel.app/premium</loc>
+    <loc>https://www.openfashionapp.com/premium</loc>
     <lastmod>2024-07-25T20:00:00.000Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://openfashion.vercel.app/login</loc>
+    <loc>https://www.openfashionapp.com/login</loc>
     <lastmod>2024-07-25T20:00:00.000Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://openfashion.vercel.app/register</loc>
+    <loc>https://www.openfashionapp.com/register</loc>
     <lastmod>2024-07-25T20:00:00.000Z</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>

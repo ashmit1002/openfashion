@@ -12,6 +12,6 @@ export default function robots(): MetadataRoute.Robots {
         '/private/',
       ],
     },
-    sitemap: 'https://openfashion.vercel.app/sitemap.xml',
+    sitemap: 'https://www.openfashionapp.com/sitemap.xml',
   }
 } 

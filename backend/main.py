@@ -8,7 +8,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://openfashion.vercel.app",
+        "https://www.openfashionapp.com",
         "http://localhost:3000"
     ],
     allow_credentials=True,

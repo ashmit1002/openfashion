@@ -33,7 +33,7 @@ export default async function Image() {
         >
                       {/* Logo with built-in white circle */}
             <img
-              src="https://openfashion.vercel.app/inverted_openfashion_logo_white_circle.png?v=3"
+              src="https://www.openfashionapp.com/inverted_openfashion_logo_white_circle.png?v=3"
               width="120"
               height="120"
               style={{

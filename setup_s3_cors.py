@@ -18,7 +18,7 @@ def configure_s3_cors(bucket_name):
                 'AllowedHeaders': ['*'],
                 'AllowedMethods': ['GET', 'HEAD'],
                 'AllowedOrigins': [
-                    'https://openfashion.vercel.app',
+                    'https://www.openfashionapp.com',
                     'http://localhost:3000',
                     'http://localhost:3001'
                 ],
