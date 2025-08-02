@@ -6,6 +6,7 @@ import { useInView } from "react-intersection-observer";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { trackInteraction, fetchSerpApiShoppingResults } from "@/lib/api";
+import { useRouter } from "next/navigation";
 // We will add more imports later as needed, e.g., for displaying search results
 
 // Define interfaces for Google Custom Search API response
@@ -50,6 +51,7 @@ export default function ExplorePage() {
   const [likedItems, setLikedItems] = useState<Set<string>>(new Set());
   const [savedItems, setSavedItems] = useState<Set<string>>(new Set());
   const { user } = useAuth();
+  const router = useRouter();
   const RESULTS_PER_PAGE = 10;
   const [shoppingResults, setShoppingResults] = useState<{ [query: string]: any[] }>({});
   const [shoppingLoading, setShoppingLoading] = useState(false);
@@ -63,8 +65,8 @@ export default function ExplorePage() {
         setLoading(true);
         const token = localStorage.getItem('token');
         if (!token) {
-          setError("Authentication token not found. Please log in.");
-          setLoading(false);
+          // Redirect to login instead of showing error
+          router.push('/login');
           return;
         }
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/style/generate-search-queries`, {
@@ -90,7 +92,7 @@ export default function ExplorePage() {
       }
     };
     fetchSearchQueries();
-  }, []);
+  }, [router]);
 
   // Fetch results for all queries (first page or when queries change)
   useEffect(() => {
