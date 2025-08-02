@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { User, Settings, LogOut, Book, Crown, Sparkles, XCircle, Search, Trash2 } from "lucide-react"
+import { User, Settings, LogOut, Book, Crown, Sparkles, XCircle, Search, Trash2, HelpCircle } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -163,6 +163,12 @@ export function UserAccountButton() {
           <Link href="/preferences" className="cursor-pointer">
             <Book className="mr-2 h-4 w-4" />
             <span>Preferences</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/faq" className="cursor-pointer">
+            <HelpCircle className="mr-2 h-4 w-4" />
+            <span>Help & FAQ</span>
           </Link>
         </DropdownMenuItem>
         {!isPremium && (

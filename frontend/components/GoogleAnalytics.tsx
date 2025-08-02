@@ -3,7 +3,7 @@
 import Script from 'next/script'
 import { useEffect } from 'react'
 
-const GA_MEASUREMENT_ID = 'G-65LV693YXF'
+const GA_MEASUREMENT_ID = 'G-CSCFJDNG1Y'
 
 export default function GoogleAnalytics() {
   useEffect(() => {
