@@ -26,6 +26,12 @@ class GoogleAuthService:
                 'redirect_uri': redirect_uri
             }
             
+            # Debug logging
+            print(f"🔍 Google OAuth Debug - Client ID: {self.client_id}")
+            print(f"🔍 Google OAuth Debug - Redirect URI being sent to Google: {redirect_uri}")
+            print(f"🔍 Google OAuth Debug - Expected Redirect URI: {settings.GOOGLE_REDIRECT_URI}")
+            print(f"🔍 Google OAuth Debug - URIs match: {redirect_uri == settings.GOOGLE_REDIRECT_URI}")
+            
             token_response = requests.post(self.token_url, data=token_data)
             token_response.raise_for_status()
             token_info = token_response.json()

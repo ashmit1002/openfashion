@@ -96,6 +96,11 @@ def login(user: UserLogin):
 def google_auth(request: GoogleAuthRequest):
     """Authenticate user with Google OAuth"""
     try:
+        # Debug logging
+        print(f"🔍 Backend Debug - Received redirect_uri: {request.redirect_uri}")
+        print(f"🔍 Backend Debug - Expected redirect_uri: {settings.GOOGLE_REDIRECT_URI}")
+        print(f"🔍 Backend Debug - Client ID: {settings.GOOGLE_CLIENT_ID}")
+        
         result = google_auth_service.authenticate_google_user(request.code, request.redirect_uri)
         return result
     except ValueError as e:

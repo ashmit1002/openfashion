@@ -15,6 +15,13 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Debug logging
+    console.log('🔍 Frontend Debug - NEXT_PUBLIC_BASE_URL:', process.env.NEXT_PUBLIC_BASE_URL);
+    console.log('🔍 Frontend Debug - NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
+    
+    const redirectUri = `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/google/callback`;
+    console.log('🔍 Frontend Debug - Constructed redirect_uri:', redirectUri);
+    
     // Call backend to exchange code for token
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`, {
       method: 'POST',
@@ -23,7 +30,7 @@ export async function GET(request: NextRequest) {
       },
       body: JSON.stringify({
         code,
-        redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/google/callback`
+        redirect_uri: redirectUri
       }),
     });
 
